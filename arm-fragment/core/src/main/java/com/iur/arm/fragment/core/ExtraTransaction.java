@@ -55,7 +55,6 @@ public abstract class ExtraTransaction {
      * @see Fragment#setSharedElementReturnTransition(Object)
      * @see Fragment#setSharedElementEnterTransition(Object)
      */
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     public abstract ExtraTransaction addSharedElement(View sharedElement, String sharedName);
 
     public abstract void loadRootFragment(int containerId, IArmFragment toFragment);

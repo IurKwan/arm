@@ -23,7 +23,7 @@ import com.iur.arm.fragment.core.helper.internal.ResultRecord;
 import com.iur.arm.fragment.core.helper.internal.TransactionRecord;
 import com.iur.arm.fragment.core.helper.internal.VisibleDelegate;
 
-public class SupportFragmentDelegate {
+public class ArmFragmentDelegate {
     private static final long NOT_FOUND_ANIM_TIME = 300L;
 
     static final int STATUS_UN_ROOT = 0;
@@ -62,7 +62,7 @@ public class SupportFragmentDelegate {
 
     private ResultRecord mResultRecord;
 
-    public SupportFragmentDelegate(IArmFragment support) {
+    public ArmFragmentDelegate(IArmFragment support) {
         if (!(support instanceof Fragment)) {
             throw new RuntimeException("Must extends Fragment");
         }

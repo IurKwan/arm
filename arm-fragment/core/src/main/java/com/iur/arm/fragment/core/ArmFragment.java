@@ -15,7 +15,7 @@ import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
 public class ArmFragment extends Fragment implements IArmFragment {
-    final SupportFragmentDelegate mDelegate = new SupportFragmentDelegate(this);
+    final ArmFragmentDelegate mDelegate = new ArmFragmentDelegate(this);
     protected ArmActivity _mActivity;
 
     public ArmFragment() {
@@ -27,7 +27,7 @@ public class ArmFragment extends Fragment implements IArmFragment {
     }
 
     @Override
-    public SupportFragmentDelegate getSupportDelegate() {
+    public ArmFragmentDelegate getSupportDelegate() {
         return mDelegate;
     }
 

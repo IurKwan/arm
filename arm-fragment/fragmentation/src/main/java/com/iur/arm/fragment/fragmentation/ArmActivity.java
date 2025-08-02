@@ -11,15 +11,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.iur.arm.fragment.core.ExtraTransaction;
 import com.iur.arm.fragment.core.IArmActivity;
 import com.iur.arm.fragment.core.IArmFragment;
-import com.iur.arm.fragment.core.SupportActivityDelegate;
+import com.iur.arm.fragment.core.ArmActivityDelegate;
 import com.iur.arm.fragment.core.SupportHelper;
 import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 public class ArmActivity extends AppCompatActivity implements IArmActivity {
-    final SupportActivityDelegate mDelegate = new SupportActivityDelegate(this);
+    final ArmActivityDelegate mDelegate = new ArmActivityDelegate(this);
 
     @Override
-    public SupportActivityDelegate getSupportDelegate() {
+    public ArmActivityDelegate getSupportDelegate() {
         return mDelegate;
     }
 

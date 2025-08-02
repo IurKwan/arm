@@ -12,10 +12,10 @@ import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
 public class ArmActivity extends AppCompatActivity implements IArmActivity {
-    final SupportActivityDelegate mDelegate = new SupportActivityDelegate(this);
+    final ArmActivityDelegate mDelegate = new ArmActivityDelegate(this);
 
     @Override
-    public SupportActivityDelegate getSupportDelegate() {
+    public ArmActivityDelegate getSupportDelegate() {
         return mDelegate;
     }
 
@@ -32,12 +32,6 @@ public class ArmActivity extends AppCompatActivity implements IArmActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDelegate.onCreate();
-    }
-
-    @Override
-    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-        mDelegate.onPostCreate();
     }
 
     /**

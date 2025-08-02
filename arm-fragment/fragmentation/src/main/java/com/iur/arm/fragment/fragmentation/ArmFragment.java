@@ -11,17 +11,17 @@ import androidx.fragment.app.Fragment;
 
 import com.iur.arm.fragment.core.ExtraTransaction;
 import com.iur.arm.fragment.core.IArmFragment;
-import com.iur.arm.fragment.core.SupportFragmentDelegate;
+import com.iur.arm.fragment.core.ArmFragmentDelegate;
 import com.iur.arm.fragment.core.SupportHelper;
 import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
 public class ArmFragment extends Fragment implements IArmFragment {
-    final SupportFragmentDelegate mDelegate = new SupportFragmentDelegate(this);
+    final ArmFragmentDelegate mDelegate = new ArmFragmentDelegate(this);
     protected ArmActivity _mActivity;
 
     @Override
-    public SupportFragmentDelegate getSupportDelegate() {
+    public ArmFragmentDelegate getSupportDelegate() {
         return mDelegate;
     }
 

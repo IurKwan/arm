@@ -6,7 +6,7 @@ import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
 public interface IArmActivity {
-    SupportActivityDelegate getSupportDelegate();
+    ArmActivityDelegate getSupportDelegate();
 
     ExtraTransaction extraTransaction();
 

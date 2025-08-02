@@ -12,7 +12,7 @@ import com.iur.arm.fragment.core.anim.FragmentAnimator;
 import com.iur.arm.fragment.core.queue.Action;
 
 
-public class SupportActivityDelegate {
+public class ArmActivityDelegate {
     private final IArmActivity mSupport;
     private final FragmentActivity mActivity;
 
@@ -23,7 +23,7 @@ public class SupportActivityDelegate {
     private FragmentAnimator mFragmentAnimator;
     private int mDefaultFragmentBackground = 0;
 
-    public SupportActivityDelegate(IArmActivity support) {
+    public ArmActivityDelegate(IArmActivity support) {
         if (!(support instanceof FragmentActivity)) {
             throw new RuntimeException("Must extends FragmentActivity/AppCompatActivity");
         }
@@ -70,7 +70,7 @@ public class SupportActivityDelegate {
         for (Fragment fragment : FragmentationMagician.getActiveFragments(getSupportFragmentManager())) {
             if (fragment instanceof IArmFragment) {
                 IArmFragment iF = (IArmFragment) fragment;
-                SupportFragmentDelegate delegate = iF.getSupportDelegate();
+                ArmFragmentDelegate delegate = iF.getSupportDelegate();
                 if (delegate.mAnimByActivity) {
                     delegate.mFragmentAnimator = fragmentAnimator.copy();
                     if (delegate.mAnimHelper != null) {

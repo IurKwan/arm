@@ -102,7 +102,7 @@ class TransactionDelegate {
                     Fragment to = (Fragment) tos[i];
 
                     Bundle args = getArguments(to);
-                    args.putInt(FRAGMENTATION_ARG_ROOT_STATUS, SupportFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
+                    args.putInt(FRAGMENTATION_ARG_ROOT_STATUS, ArmFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
                     bindContainerId(containerId, tos[i]);
 
                     String toName = to.getClass().getName();
@@ -509,7 +509,7 @@ class TransactionDelegate {
                     ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
                 }
             } else {
-                args.putInt(FRAGMENTATION_ARG_ROOT_STATUS, SupportFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
+                args.putInt(FRAGMENTATION_ARG_ROOT_STATUS, ArmFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
             }
         } else {
             args.putBoolean(FRAGMENTATION_ARG_IS_SHARED_ELEMENT, true);
@@ -522,7 +522,7 @@ class TransactionDelegate {
             if (!addMode) {
                 ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
                 args.putInt(FRAGMENTATION_ARG_ROOT_STATUS, allowRootFragmentAnim ?
-                        SupportFragmentDelegate.STATUS_ROOT_ANIM_ENABLE : SupportFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
+                        ArmFragmentDelegate.STATUS_ROOT_ANIM_ENABLE : ArmFragmentDelegate.STATUS_ROOT_ANIM_DISABLE);
             }
         } else {
             if (addMode) {

@@ -25,7 +25,7 @@ public interface IArmFragment {
     public @interface LaunchMode {
     }
 
-    SupportFragmentDelegate getSupportDelegate();
+    ArmFragmentDelegate getSupportDelegate();
 
     ExtraTransaction extraTransaction();
 
