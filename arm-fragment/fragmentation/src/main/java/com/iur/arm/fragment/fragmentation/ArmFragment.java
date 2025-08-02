@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
@@ -35,7 +36,7 @@ public class ArmFragment extends Fragment implements IArmFragment {
     }
 
     @Override
-    public void onAttach(Activity activity) {
+    public void onAttach(@NonNull Activity activity) {
         super.onAttach(activity);
         mDelegate.onAttach(activity);
         _mActivity = (ArmActivity) mDelegate.getActivity();
