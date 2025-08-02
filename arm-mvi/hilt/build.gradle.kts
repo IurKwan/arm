@@ -1,5 +1,4 @@
-import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.kotlin.dsl.implementation
 
 plugins {
     alias(libs.plugins.android.library)
@@ -7,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.iur.arm.mvi.compose"
+    namespace = "com.iur.arm.mvi.hilt"
     compileSdk = 36
 
     defaultConfig {
@@ -35,23 +34,9 @@ android {
     }
 }
 
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=com.iur.arm.mvi.common.InternalMavericksApi",
-            "-opt-in=com.iur.arm.mvi.common.ExperimentalMavericksApi",
-        )
-    }
-}
-
 dependencies {
     api(project(":arm-mvi:mvi"))
-
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.compose.ui)
-
+    implementation(libs.hilt)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
