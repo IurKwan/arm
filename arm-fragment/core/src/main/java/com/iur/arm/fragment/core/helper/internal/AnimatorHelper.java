@@ -57,39 +57,35 @@ public final class AnimatorHelper {
         return null;
     }
 
-    private Animation initEnterAnim() {
+    private void initEnterAnim() {
         if (fragmentAnimator.getEnter() == 0) {
             enterAnim = AnimationUtils.loadAnimation(context, R.anim.no_anim);
         } else {
             enterAnim = AnimationUtils.loadAnimation(context, fragmentAnimator.getEnter());
         }
-        return enterAnim;
     }
 
-    private Animation initExitAnim() {
+    private void initExitAnim() {
         if (fragmentAnimator.getExit() == 0) {
             exitAnim = AnimationUtils.loadAnimation(context, R.anim.no_anim);
         } else {
             exitAnim = AnimationUtils.loadAnimation(context, fragmentAnimator.getExit());
         }
-        return exitAnim;
     }
 
-    private Animation initPopEnterAnim() {
+    private void initPopEnterAnim() {
         if (fragmentAnimator.getPopEnter() == 0) {
             popEnterAnim = AnimationUtils.loadAnimation(context, R.anim.no_anim);
         } else {
             popEnterAnim = AnimationUtils.loadAnimation(context, fragmentAnimator.getPopEnter());
         }
-        return popEnterAnim;
     }
 
-    private Animation initPopExitAnim() {
+    private void initPopExitAnim() {
         if (fragmentAnimator.getPopExit() == 0) {
             popExitAnim = AnimationUtils.loadAnimation(context, R.anim.no_anim);
         } else {
             popExitAnim = AnimationUtils.loadAnimation(context, fragmentAnimator.getPopExit());
         }
-        return popExitAnim;
     }
 }
