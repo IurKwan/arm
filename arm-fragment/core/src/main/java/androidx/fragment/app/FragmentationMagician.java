@@ -1,16 +1,14 @@
 package androidx.fragment.app;
 
 
-import android.util.Log;
-
 import java.util.List;
+
+import timber.log.Timber;
 
 /**
  * @author guanzhirui
  */
 public class FragmentationMagician {
-
-    private static final String TAG = "FragmentationMagician";
 
     public static boolean isStateSaved(FragmentManager fragmentManager) {
         if (!(fragmentManager instanceof FragmentManagerImpl)) {
@@ -20,7 +18,7 @@ public class FragmentationMagician {
             FragmentManagerImpl fragmentManagerImpl = (FragmentManagerImpl) fragmentManager;
             return fragmentManagerImpl.isStateSaved();
         } catch (Exception e) {
-            Log.d(TAG, e.toString());
+            Timber.d(e.toString());
         }
         return false;
     }

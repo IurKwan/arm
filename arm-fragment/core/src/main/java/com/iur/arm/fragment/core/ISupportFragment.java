@@ -5,14 +5,11 @@ import android.os.Bundle;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
-
-/**
- * @author guanzhirui
- */
 public interface ISupportFragment {
     // LaunchMode
     int STANDARD = 0;

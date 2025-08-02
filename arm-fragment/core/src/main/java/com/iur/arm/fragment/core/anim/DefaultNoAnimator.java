@@ -4,9 +4,8 @@ package com.iur.arm.fragment.core.anim;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-/**
- * Created by YoKeyword on 16/2/15.
- */
+import androidx.annotation.NonNull;
+
 public class DefaultNoAnimator extends FragmentAnimator implements Parcelable {
     public DefaultNoAnimator() {
         enter = 0;
@@ -20,7 +19,7 @@ public class DefaultNoAnimator extends FragmentAnimator implements Parcelable {
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         super.writeToParcel(dest, flags);
     }
 
@@ -29,7 +28,7 @@ public class DefaultNoAnimator extends FragmentAnimator implements Parcelable {
         return 0;
     }
 
-    public static final Creator<DefaultNoAnimator> CREATOR = new Creator<DefaultNoAnimator>() {
+    public static final Creator<DefaultNoAnimator> CREATOR = new Creator<>() {
         @Override
         public DefaultNoAnimator createFromParcel(Parcel in) {
             return new DefaultNoAnimator(in);

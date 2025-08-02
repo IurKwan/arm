@@ -17,15 +17,12 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
-import me.yokeyword.fragmentation.helper.internal.AnimatorHelper;
-import me.yokeyword.fragmentation.helper.internal.ResultRecord;
-import me.yokeyword.fragmentation.helper.internal.TransactionRecord;
-import me.yokeyword.fragmentation.helper.internal.VisibleDelegate;
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
+import com.iur.arm.fragment.core.helper.internal.AnimatorHelper;
+import com.iur.arm.fragment.core.helper.internal.ResultRecord;
+import com.iur.arm.fragment.core.helper.internal.TransactionRecord;
+import com.iur.arm.fragment.core.helper.internal.VisibleDelegate;
 
-/**
- * @author guanzhirui
- */
 public class SupportFragmentDelegate {
     private static final long NOT_FOUND_ANIM_TIME = 300L;
 

@@ -3,12 +3,12 @@ package com.iur.arm.fragment.core.anim;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import me.yokeyword.fragmentation.R;
+import androidx.annotation.NonNull;
 
-/**
- * Created by YoKeyword on 16/2/5.
- */
-public class DefaultVerticalAnimator extends FragmentAnimator implements Parcelable{
+import com.iur.arm.fragment.core.R;
+
+
+public class DefaultVerticalAnimator extends FragmentAnimator implements Parcelable {
 
     public DefaultVerticalAnimator() {
         enter = R.anim.v_fragment_enter;
@@ -22,7 +22,7 @@ public class DefaultVerticalAnimator extends FragmentAnimator implements Parcela
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         super.writeToParcel(dest, flags);
     }
 
@@ -31,7 +31,7 @@ public class DefaultVerticalAnimator extends FragmentAnimator implements Parcela
         return 0;
     }
 
-    public static final Creator<DefaultVerticalAnimator> CREATOR = new Creator<DefaultVerticalAnimator>() {
+    public static final Creator<DefaultVerticalAnimator> CREATOR = new Creator<>() {
         @Override
         public DefaultVerticalAnimator createFromParcel(Parcel in) {
             return new DefaultVerticalAnimator(in);

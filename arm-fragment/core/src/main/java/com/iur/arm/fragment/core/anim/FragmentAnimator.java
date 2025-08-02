@@ -5,10 +5,6 @@ import android.os.Parcelable;
 
 import androidx.annotation.AnimRes;
 
-/**
- * Fragment动画实体类
- * Created by YoKeyword on 16/2/4.
- */
 public class FragmentAnimator implements Parcelable {
     @AnimRes
     protected int enter;
@@ -45,7 +41,7 @@ public class FragmentAnimator implements Parcelable {
         popExit = in.readInt();
     }
 
-    public static final Creator<FragmentAnimator> CREATOR = new Creator<FragmentAnimator>() {
+    public static final Creator<FragmentAnimator> CREATOR = new Creator<>() {
         @Override
         public FragmentAnimator createFromParcel(Parcel in) {
             return new FragmentAnimator(in);

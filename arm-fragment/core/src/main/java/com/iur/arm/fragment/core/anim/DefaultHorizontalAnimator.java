@@ -3,12 +3,10 @@ package com.iur.arm.fragment.core.anim;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import me.yokeyword.fragmentation.R;
+import com.iur.arm.fragment.core.R;
 
-/**
- * Created by YoKeyword on 16/2/5.
- */
-public class DefaultHorizontalAnimator extends FragmentAnimator implements Parcelable{
+
+public class DefaultHorizontalAnimator extends FragmentAnimator implements Parcelable {
 
     public DefaultHorizontalAnimator() {
         enter = R.anim.h_fragment_enter;
@@ -31,7 +29,7 @@ public class DefaultHorizontalAnimator extends FragmentAnimator implements Parce
         return 0;
     }
 
-    public static final Creator<DefaultHorizontalAnimator> CREATOR = new Creator<DefaultHorizontalAnimator>() {
+    public static final Creator<DefaultHorizontalAnimator> CREATOR = new Creator<>() {
         @Override
         public DefaultHorizontalAnimator createFromParcel(Parcel in) {
             return new DefaultHorizontalAnimator(in);

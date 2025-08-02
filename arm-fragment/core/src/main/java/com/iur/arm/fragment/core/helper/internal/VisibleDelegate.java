@@ -9,13 +9,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentationMagician;
 
+import com.iur.arm.fragment.core.ISupportFragment;
+
 import java.util.List;
 
-import me.yokeyword.fragmentation.ISupportFragment;
-
-/**
- * @author guanzhirui
- */
 public class VisibleDelegate {
     private static final String FRAGMENTATION_STATE_SAVE_IS_INVISIBLE_WHEN_LEAVE = "fragmentation_invisible_when_leave";
     private static final String FRAGMENTATION_STATE_SAVE_COMPAT_REPLACE = "fragmentation_compat_replace";

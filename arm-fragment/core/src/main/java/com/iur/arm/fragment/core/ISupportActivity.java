@@ -2,11 +2,8 @@ package com.iur.arm.fragment.core;
 
 import android.view.MotionEvent;
 
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
-/**
- * @author guanzhirui
- */
 
 public interface ISupportActivity {
     SupportActivityDelegate getSupportDelegate();

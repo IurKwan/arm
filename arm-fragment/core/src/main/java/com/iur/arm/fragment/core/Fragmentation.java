@@ -2,14 +2,12 @@ package com.iur.arm.fragment.core;
 
 import androidx.annotation.IntDef;
 
+import com.iur.arm.fragment.core.helper.ExceptionHandler;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-import me.yokeyword.fragmentation.helper.ExceptionHandler;
 
-/**
- * @author guanzhirui
- */
 public class Fragmentation {
     /**
      * Dont display stack view.

@@ -3,17 +3,13 @@ package com.iur.arm.fragment.core.queue;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.iur.arm.fragment.core.ISupportFragment;
+import com.iur.arm.fragment.core.SupportHelper;
+
 import java.util.LinkedList;
 import java.util.Queue;
 
-import me.yokeyword.fragmentation.ISupportFragment;
-import me.yokeyword.fragmentation.SupportHelper;
 
-/**
- * The queue of perform action.
- * <p>
- * @author guanzhirui
- */
 public class ActionQueue {
     private final Queue<Action> mQueue = new LinkedList<>();
     private final Handler mMainHandler;

@@ -7,14 +7,11 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentationMagician;
 
-import me.yokeyword.fragmentation.anim.DefaultVerticalAnimator;
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
-import me.yokeyword.fragmentation.debug.DebugStackDelegate;
-import me.yokeyword.fragmentation.queue.Action;
+import com.iur.arm.fragment.core.anim.DefaultVerticalAnimator;
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
+import com.iur.arm.fragment.core.queue.Action;
 
-/**
- * @author guanzhirui
- */
+
 public class SupportActivityDelegate {
     private final ISupportActivity mSupport;
     private final FragmentActivity mActivity;
@@ -25,7 +22,6 @@ public class SupportActivityDelegate {
     private TransactionDelegate mTransactionDelegate;
     private FragmentAnimator mFragmentAnimator;
     private int mDefaultFragmentBackground = 0;
-    private final DebugStackDelegate mDebugStackDelegate;
 
     public SupportActivityDelegate(ISupportActivity support) {
         if (!(support instanceof FragmentActivity)) {
@@ -33,7 +29,6 @@ public class SupportActivityDelegate {
         }
         this.mSupport = support;
         this.mActivity = (FragmentActivity) support;
-        this.mDebugStackDelegate = new DebugStackDelegate(this.mActivity);
     }
 
     /**
@@ -47,7 +42,6 @@ public class SupportActivityDelegate {
     public void onCreate() {
         mTransactionDelegate = getTransactionDelegate();
         mFragmentAnimator = mSupport.onCreateFragmentAnimator();
-        mDebugStackDelegate.onCreate(Fragmentation.getDefault().getMode());
     }
 
     public TransactionDelegate getTransactionDelegate() {
@@ -58,7 +52,6 @@ public class SupportActivityDelegate {
     }
 
     public void onPostCreate() {
-        mDebugStackDelegate.onPostCreate(Fragmentation.getDefault().getMode());
     }
 
     /**
@@ -118,20 +111,6 @@ public class SupportActivityDelegate {
     }
 
     /**
-     * 显示栈视图dialog,调试时使用
-     */
-    public void showFragmentStackHierarchyView() {
-        mDebugStackDelegate.showFragmentStackHierarchyView();
-    }
-
-    /**
-     * 显示栈视图日志,调试时使用
-     */
-    public void logFragmentStackHierarchy(String tag) {
-        mDebugStackDelegate.logFragmentRecords(tag);
-    }
-
-    /**
      * Causes the Runnable r to be added to the action queue.
      * <p>
      * The runnable will be run after all the previous action has been run.
@@ -174,10 +153,6 @@ public class SupportActivityDelegate {
         } else {
             ActivityCompat.finishAfterTransition(mActivity);
         }
-    }
-
-    public void onDestroy() {
-        mDebugStackDelegate.onDestroy();
     }
 
     public boolean dispatchTouchEvent() {

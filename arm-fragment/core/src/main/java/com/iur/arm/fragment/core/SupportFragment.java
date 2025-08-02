@@ -11,14 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
-/**
- * Base class for activities that use the support-based
- * {@link ISupportFragment} and
- * {@link Fragment} APIs.
- * @author guanzhirui
- */
+
 public class SupportFragment extends Fragment implements ISupportFragment {
     final SupportFragmentDelegate mDelegate = new SupportFragmentDelegate(this);
     protected SupportActivity _mActivity;
@@ -235,27 +230,11 @@ public class SupportFragment extends Fragment implements ISupportFragment {
         mDelegate.setFragmentResult(resultCode, bundle);
     }
 
-    /**
-     * 类似  {@link Activity#onActivityResult(int, int, Intent)}
-     * <p>
-     * Similar to {@link Activity#onActivityResult(int, int, Intent)}
-     *
-     * @see #startForResult(ISupportFragment, int)
-     */
     @Override
     public void onFragmentResult(int requestCode, int resultCode, Bundle data) {
         mDelegate.onFragmentResult(requestCode, resultCode, data);
     }
 
-    /**
-     * 在start(TargetFragment,LaunchMode)时,启动模式为SingleTask/SingleTop, 回调TargetFragment的该方法
-     * 类似 {@link Activity#onNewIntent(Intent)}
-     * <p>
-     * Similar to {@link Activity#onNewIntent(Intent)}
-     *
-     * @param args putNewBundle(Bundle newBundle)
-     * @see #start(ISupportFragment, int)
-     */
     @Override
     public void onNewBundle(Bundle args) {
         mDelegate.onNewBundle(args);

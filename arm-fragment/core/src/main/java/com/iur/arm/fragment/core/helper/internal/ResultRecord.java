@@ -4,12 +4,9 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import me.yokeyword.fragmentation.ISupportFragment;
+import com.iur.arm.fragment.core.ISupportFragment;
 
-/**
- * Result 记录
- * @author guanzhirui
- */
+
 public final class ResultRecord implements Parcelable {
     public int requestCode;
     public int resultCode = 0;

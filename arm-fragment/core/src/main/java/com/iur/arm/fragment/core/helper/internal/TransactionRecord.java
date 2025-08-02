@@ -4,9 +4,6 @@ import android.view.View;
 
 import java.util.ArrayList;
 
-/**
- * @author guanzhirui
- */
 public final class TransactionRecord {
     public String tag;
     public int targetFragmentEnter = Integer.MIN_VALUE;

@@ -17,18 +17,15 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.fragment.app.FragmentationMagician;
 
+import com.iur.arm.fragment.core.exception.AfterSaveStateTransactionWarning;
+import com.iur.arm.fragment.core.helper.internal.ResultRecord;
+import com.iur.arm.fragment.core.helper.internal.TransactionRecord;
+import com.iur.arm.fragment.core.queue.Action;
+import com.iur.arm.fragment.core.queue.ActionQueue;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import me.yokeyword.fragmentation.exception.AfterSaveStateTransactionWarning;
-import me.yokeyword.fragmentation.helper.internal.ResultRecord;
-import me.yokeyword.fragmentation.helper.internal.TransactionRecord;
-import me.yokeyword.fragmentation.queue.Action;
-import me.yokeyword.fragmentation.queue.ActionQueue;
-
-/**
- * Controller
- */
 class TransactionDelegate {
     static final int DEFAULT_POPTO_ANIM = Integer.MAX_VALUE;
 

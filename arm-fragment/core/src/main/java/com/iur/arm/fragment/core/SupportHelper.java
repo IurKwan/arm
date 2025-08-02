@@ -11,9 +11,7 @@ import androidx.fragment.app.FragmentationMagician;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author guanzhirui
- */
+
 public class SupportHelper {
     private static final long SHOW_SPACE = 200L;
 
@@ -46,20 +44,6 @@ public class SupportHelper {
         }
         InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
-    /**
-     * 显示栈视图dialog,调试时使用
-     */
-    public static void showFragmentStackHierarchyView(ISupportActivity support) {
-        support.getSupportDelegate().showFragmentStackHierarchyView();
-    }
-
-    /**
-     * 显示栈视图日志,调试时使用
-     */
-    public static void logFragmentStackHierarchy(ISupportActivity support, String TAG) {
-        support.getSupportDelegate().logFragmentStackHierarchy(TAG);
     }
 
     /**

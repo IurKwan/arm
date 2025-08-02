@@ -2,9 +2,6 @@ package com.iur.arm.fragment.core.queue;
 
 import androidx.fragment.app.FragmentManager;
 
-/**
- * @author guanzhirui
- */
 public abstract class Action {
     public static final long DEFAULT_POP_TIME = 300L;
 

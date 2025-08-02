@@ -14,9 +14,6 @@ import com.iur.arm.fragment.core.helper.internal.TransactionRecord;
 
 import java.util.ArrayList;
 
-/**
- * @author guanzhirui
- */
 public abstract class ExtraTransaction {
 
     /**

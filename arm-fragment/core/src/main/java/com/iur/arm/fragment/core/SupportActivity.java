@@ -8,15 +8,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import me.yokeyword.fragmentation.anim.FragmentAnimator;
+import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
-/**
- * Base class for activities that use the support-based
- * {@link ISupportActivity} and
- * {@link AppCompatActivity} APIs.
- * <p>
- * @author guanzhirui
- */
+
 public class SupportActivity extends AppCompatActivity implements ISupportActivity {
     final SupportActivityDelegate mDelegate = new SupportActivityDelegate(this);
 
@@ -44,12 +38,6 @@ public class SupportActivity extends AppCompatActivity implements ISupportActivi
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         mDelegate.onPostCreate();
-    }
-
-    @Override
-    protected void onDestroy() {
-        mDelegate.onDestroy();
-        super.onDestroy();
     }
 
     /**
