@@ -1,64 +1,58 @@
 package com.iur.arm.fragment.core.anim
 
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.annotation.AnimRes
 
-open class FragmentAnimator {
+open class FragmentAnimator() : Parcelable {
     @AnimRes
-    protected var enter: Int = 0
-
-    @AnimRes
-    protected var exit: Int = 0
+    var enter: Int = 0
 
     @AnimRes
-    protected var popEnter: Int = 0
+    var exit: Int = 0
 
     @AnimRes
-    protected var popExit: Int = 0
+    var popEnter: Int = 0
 
-    constructor()
+    @AnimRes
+    var popExit: Int = 0
 
-    constructor(enter: Int, exit: Int) {
+    constructor(enter: Int, exit: Int) : this() {
         this.enter = enter
         this.exit = exit
     }
 
-    constructor(enter: Int, exit: Int, popEnter: Int, popExit: Int) {
+    constructor(enter: Int, exit: Int, popEnter: Int, popExit: Int) : this() {
         this.enter = enter
         this.exit = exit
         this.popEnter = popEnter
         this.popExit = popExit
     }
 
-    fun copy(): FragmentAnimator = FragmentAnimator(getEnter(), getExit(), getPopEnter(), getPopExit())
+    fun copy(): FragmentAnimator = FragmentAnimator(enter, exit, popEnter, popExit)
 
-    fun getEnter(): Int = enter
-
-    fun setEnter(enter: Int): FragmentAnimator {
-        this.enter = enter
-        return this
+    constructor(parcel: Parcel) : this() {
+        enter = parcel.readInt()
+        exit = parcel.readInt()
+        popEnter = parcel.readInt()
+        popExit = parcel.readInt()
     }
 
-    fun getExit(): Int = exit
-
-    /**
-     * enter animation
-     */
-    fun setExit(exit: Int): FragmentAnimator {
-        this.exit = exit
-        return this
+    override fun writeToParcel(
+        parcel: Parcel,
+        flags: Int,
+    ) {
+        parcel.writeInt(enter)
+        parcel.writeInt(exit)
+        parcel.writeInt(popEnter)
+        parcel.writeInt(popExit)
     }
 
-    fun getPopEnter(): Int = popEnter
+    override fun describeContents(): Int = 0
 
-    fun setPopEnter(popEnter: Int): FragmentAnimator {
-        this.popEnter = popEnter
-        return this
-    }
+    companion object CREATOR : Parcelable.Creator<FragmentAnimator> {
+        override fun createFromParcel(parcel: Parcel): FragmentAnimator = FragmentAnimator(parcel)
 
-    fun getPopExit(): Int = popExit
-
-    fun setPopExit(popExit: Int): FragmentAnimator {
-        this.popExit = popExit
-        return this
+        override fun newArray(size: Int): Array<FragmentAnimator?> = arrayOfNulls(size)
     }
 }

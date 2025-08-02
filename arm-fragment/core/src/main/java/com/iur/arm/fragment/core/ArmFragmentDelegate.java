@@ -227,8 +227,8 @@ public class ArmFragmentDelegate {
     }
 
     public void onDestroy() {
-        if (mResultRecord != null){
-            ((IArmFragment)mResultRecord.targetFragment).onFragmentResult(mResultRecord.requestCode, mResultRecord.resultCode, mResultRecord.resultBundle);
+        if (mResultRecord != null) {
+            mResultRecord.targetFragment.onFragmentResult(mResultRecord.requestCode, mResultRecord.resultCode, mResultRecord.resultBundle);
         }
     }
 
@@ -685,7 +685,7 @@ public class ArmFragmentDelegate {
     }
 
     public long getExitAnimDuration() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             return getPopExitAnimDuration();
         } else {
             if (mCustomExitAnim == Integer.MIN_VALUE) {
