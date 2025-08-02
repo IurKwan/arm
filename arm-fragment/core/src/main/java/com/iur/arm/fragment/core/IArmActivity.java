@@ -5,7 +5,7 @@ import android.view.MotionEvent;
 import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
-public interface ISupportActivity {
+public interface IArmActivity {
     SupportActivityDelegate getSupportDelegate();
 
     ExtraTransaction extraTransaction();

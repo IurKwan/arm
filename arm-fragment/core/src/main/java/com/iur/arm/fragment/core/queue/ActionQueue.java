@@ -3,7 +3,7 @@ package com.iur.arm.fragment.core.queue;
 import android.os.Handler;
 import android.os.Looper;
 
-import com.iur.arm.fragment.core.ISupportFragment;
+import com.iur.arm.fragment.core.IArmFragment;
 import com.iur.arm.fragment.core.SupportHelper;
 
 import java.util.LinkedList;
@@ -54,7 +54,7 @@ public class ActionQueue {
 
     private void executeNextAction(Action action) {
         if (action.action == Action.ACTION_POP) {
-            ISupportFragment top = SupportHelper.getBackStackTopFragment(action.fragmentManager);
+            IArmFragment top = SupportHelper.getBackStackTopFragment(action.fragmentManager);
             action.duration = top == null ? Action.DEFAULT_POP_TIME : top.getSupportDelegate().getExitAnimDuration();
         }
 

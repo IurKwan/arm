@@ -4,14 +4,14 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.iur.arm.fragment.core.ISupportFragment;
+import com.iur.arm.fragment.core.IArmFragment;
 
 
 public final class ResultRecord implements Parcelable {
     public int requestCode;
     public int resultCode = 0;
     public Bundle resultBundle;
-    public ISupportFragment targetFragment;
+    public IArmFragment targetFragment;
 
     public ResultRecord() {
     }

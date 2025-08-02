@@ -13,7 +13,7 @@ import com.iur.arm.fragment.core.queue.Action;
 
 
 public class SupportActivityDelegate {
-    private final ISupportActivity mSupport;
+    private final IArmActivity mSupport;
     private final FragmentActivity mActivity;
 
     boolean mPopMultipleNoAnim = false;
@@ -23,7 +23,7 @@ public class SupportActivityDelegate {
     private FragmentAnimator mFragmentAnimator;
     private int mDefaultFragmentBackground = 0;
 
-    public SupportActivityDelegate(ISupportActivity support) {
+    public SupportActivityDelegate(IArmActivity support) {
         if (!(support instanceof FragmentActivity)) {
             throw new RuntimeException("Must extends FragmentActivity/AppCompatActivity");
         }
@@ -51,9 +51,6 @@ public class SupportActivityDelegate {
         return mTransactionDelegate;
     }
 
-    public void onPostCreate() {
-    }
-
     /**
      * 获取设置的全局动画 copy
      *
@@ -71,8 +68,8 @@ public class SupportActivityDelegate {
         this.mFragmentAnimator = fragmentAnimator;
 
         for (Fragment fragment : FragmentationMagician.getActiveFragments(getSupportFragmentManager())) {
-            if (fragment instanceof ISupportFragment) {
-                ISupportFragment iF = (ISupportFragment) fragment;
+            if (fragment instanceof IArmFragment) {
+                IArmFragment iF = (IArmFragment) fragment;
                 SupportFragmentDelegate delegate = iF.getSupportDelegate();
                 if (delegate.mAnimByActivity) {
                     delegate.mFragmentAnimator = fragmentAnimator.copy();
@@ -133,7 +130,7 @@ public class SupportActivityDelegate {
                 }
 
                 // 获取activeFragment:即从栈顶开始 状态为show的那个Fragment
-                ISupportFragment activeFragment = SupportHelper.getActiveFragment(getSupportFragmentManager());
+                IArmFragment activeFragment = SupportHelper.getActiveFragment(getSupportFragmentManager());
                 if (mTransactionDelegate.dispatchBackPressedEvent(activeFragment)) {
                     return;
                 }
@@ -163,18 +160,18 @@ public class SupportActivityDelegate {
     /**
      * 加载根Fragment, 即Activity内的第一个Fragment 或 Fragment内的第一个子Fragment
      */
-    public void loadRootFragment(int containerId, ISupportFragment toFragment) {
+    public void loadRootFragment(int containerId, IArmFragment toFragment) {
         loadRootFragment(containerId, toFragment, true, false);
     }
 
-    public void loadRootFragment(int containerId, ISupportFragment toFragment, boolean addToBackStack, boolean allowAnimation) {
+    public void loadRootFragment(int containerId, IArmFragment toFragment, boolean addToBackStack, boolean allowAnimation) {
         mTransactionDelegate.loadRootTransaction(getSupportFragmentManager(), containerId, toFragment, addToBackStack, allowAnimation);
     }
 
     /**
      * 加载多个同级根Fragment,类似Wechat, QQ主页的场景
      */
-    public void loadMultipleRootFragment(int containerId, int showPosition, ISupportFragment... toFragments) {
+    public void loadMultipleRootFragment(int containerId, int showPosition, IArmFragment... toFragments) {
         mTransactionDelegate.loadMultipleRootTransaction(getSupportFragmentManager(), containerId, showPosition, toFragments);
     }
 
@@ -182,11 +179,11 @@ public class SupportActivityDelegate {
      * show一个Fragment,hide其他同栈所有Fragment
      * 使用该方法时，要确保同级栈内无多余的Fragment,(只有通过loadMultipleRootFragment()载入的Fragment)
      * <p>
-     * 建议使用更明确的{@link #showHideFragment(ISupportFragment, ISupportFragment)}
+     * 建议使用更明确的{@link #showHideFragment(IArmFragment, IArmFragment)}
      *
      * @param showFragment 需要show的Fragment
      */
-    public void showHideFragment(ISupportFragment showFragment) {
+    public void showHideFragment(IArmFragment showFragment) {
         showHideFragment(showFragment, null);
     }
 
@@ -196,41 +193,41 @@ public class SupportActivityDelegate {
      * @param showFragment 需要show的Fragment
      * @param hideFragment 需要hide的Fragment
      */
-    public void showHideFragment(ISupportFragment showFragment, ISupportFragment hideFragment) {
+    public void showHideFragment(IArmFragment showFragment, IArmFragment hideFragment) {
         mTransactionDelegate.showHideFragment(getSupportFragmentManager(), showFragment, hideFragment);
     }
 
-    public void start(ISupportFragment toFragment) {
-        start(toFragment, ISupportFragment.STANDARD);
+    public void start(IArmFragment toFragment) {
+        start(toFragment, IArmFragment.STANDARD);
     }
 
     /**
      * @param launchMode Similar to Activity's LaunchMode.
      */
-    public void start(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode) {
+    public void start(IArmFragment toFragment, @IArmFragment.LaunchMode int launchMode) {
         mTransactionDelegate.dispatchStartTransaction(getSupportFragmentManager(), getTopFragment(), toFragment, 0, launchMode, TransactionDelegate.TYPE_ADD);
     }
 
     /**
      * Launch an fragment for which you would like a result when it poped.
      */
-    public void startForResult(ISupportFragment toFragment, int requestCode) {
-        mTransactionDelegate.dispatchStartTransaction(getSupportFragmentManager(), getTopFragment(), toFragment, requestCode, ISupportFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT);
+    public void startForResult(IArmFragment toFragment, int requestCode) {
+        mTransactionDelegate.dispatchStartTransaction(getSupportFragmentManager(), getTopFragment(), toFragment, requestCode, IArmFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT);
     }
 
     /**
      * Start the target Fragment and pop itself
      */
-    public void startWithPop(ISupportFragment toFragment) {
+    public void startWithPop(IArmFragment toFragment) {
         mTransactionDelegate.startWithPop(getSupportFragmentManager(), getTopFragment(), toFragment);
     }
 
-    public void startWithPopTo(ISupportFragment toFragment, Class<?> targetFragmentClass, boolean includeTargetFragment) {
+    public void startWithPopTo(IArmFragment toFragment, Class<?> targetFragmentClass, boolean includeTargetFragment) {
         mTransactionDelegate.startWithPopTo(getSupportFragmentManager(), getTopFragment(), toFragment, targetFragmentClass.getName(), includeTargetFragment);
     }
 
-    public void replaceFragment(ISupportFragment toFragment, boolean addToBackStack) {
-        mTransactionDelegate.dispatchStartTransaction(getSupportFragmentManager(), getTopFragment(), toFragment, 0, ISupportFragment.STANDARD, addToBackStack ? TransactionDelegate.TYPE_REPLACE : TransactionDelegate.TYPE_REPLACE_DONT_BACK);
+    public void replaceFragment(IArmFragment toFragment, boolean addToBackStack) {
+        mTransactionDelegate.dispatchStartTransaction(getSupportFragmentManager(), getTopFragment(), toFragment, 0, IArmFragment.STANDARD, addToBackStack ? TransactionDelegate.TYPE_REPLACE : TransactionDelegate.TYPE_REPLACE_DONT_BACK);
     }
 
     /**
@@ -269,7 +266,7 @@ public class SupportActivityDelegate {
         return mActivity.getSupportFragmentManager();
     }
 
-    private ISupportFragment getTopFragment() {
+    private IArmFragment getTopFragment() {
         return SupportHelper.getTopFragment(getSupportFragmentManager());
     }
 }

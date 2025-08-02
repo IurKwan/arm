@@ -58,27 +58,27 @@ public abstract class ExtraTransaction {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
     public abstract ExtraTransaction addSharedElement(View sharedElement, String sharedName);
 
-    public abstract void loadRootFragment(int containerId, ISupportFragment toFragment);
+    public abstract void loadRootFragment(int containerId, IArmFragment toFragment);
 
-    public abstract void loadRootFragment(int containerId, ISupportFragment toFragment, boolean addToBackStack, boolean allowAnim);
+    public abstract void loadRootFragment(int containerId, IArmFragment toFragment, boolean addToBackStack, boolean allowAnim);
 
-    public abstract void start(ISupportFragment toFragment);
+    public abstract void start(IArmFragment toFragment);
 
-    public abstract void startDontHideSelf(ISupportFragment toFragment);
+    public abstract void startDontHideSelf(IArmFragment toFragment);
 
-    public abstract void startDontHideSelf(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode);
+    public abstract void startDontHideSelf(IArmFragment toFragment, @IArmFragment.LaunchMode int launchMode);
 
-    public abstract void start(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode);
+    public abstract void start(IArmFragment toFragment, @IArmFragment.LaunchMode int launchMode);
 
-    public abstract void startForResult(ISupportFragment toFragment, int requestCode);
+    public abstract void startForResult(IArmFragment toFragment, int requestCode);
 
-    public abstract void startForResultDontHideSelf(ISupportFragment toFragment, int requestCode);
+    public abstract void startForResultDontHideSelf(IArmFragment toFragment, int requestCode);
 
-    public abstract void startWithPop(ISupportFragment toFragment);
+    public abstract void startWithPop(IArmFragment toFragment);
 
-    public abstract void startWithPopTo(ISupportFragment toFragment, String targetFragmentTag, boolean includeTargetFragment);
+    public abstract void startWithPopTo(IArmFragment toFragment, String targetFragmentTag, boolean includeTargetFragment);
 
-    public abstract void replace(ISupportFragment toFragment);
+    public abstract void replace(IArmFragment toFragment);
 
     /**
      * 使用setTag()自定义Tag时，使用下面popTo()／popToChild()出栈
@@ -102,29 +102,29 @@ public abstract class ExtraTransaction {
     /**
      * 使用dontAddToBackStack() 加载Fragment时， 使用remove()移除Fragment
      */
-    public abstract void remove(ISupportFragment fragment, boolean showPreFragment);
+    public abstract void remove(IArmFragment fragment, boolean showPreFragment);
 
     public interface DontAddToBackStackTransaction {
         /**
          * add() +  hide(preFragment)
          */
-        void start(ISupportFragment toFragment);
+        void start(IArmFragment toFragment);
 
         /**
          * Only add()
          */
-        void add(ISupportFragment toFragment);
+        void add(IArmFragment toFragment);
 
         /**
          * replace()
          */
-        void replace(ISupportFragment toFragment);
+        void replace(IArmFragment toFragment);
     }
 
     /**
      * Impl
      */
-    final static class ExtraTransactionImpl<T extends ISupportFragment> extends ExtraTransaction implements DontAddToBackStackTransaction {
+    final static class ExtraTransactionImpl<T extends IArmFragment> extends ExtraTransaction implements DontAddToBackStackTransaction {
         private FragmentActivity mActivity;
         private T mSupportF;
         private Fragment mFragment;
@@ -179,12 +179,12 @@ public abstract class ExtraTransaction {
         }
 
         @Override
-        public void loadRootFragment(int containerId, ISupportFragment toFragment) {
+        public void loadRootFragment(int containerId, IArmFragment toFragment) {
             loadRootFragment(containerId, toFragment, true, false);
         }
 
         @Override
-        public void loadRootFragment(int containerId, ISupportFragment toFragment, boolean addToBackStack, boolean allowAnim) {
+        public void loadRootFragment(int containerId, IArmFragment toFragment, boolean addToBackStack, boolean allowAnim) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
             mTransactionDelegate.loadRootTransaction(getFragmentManager(), containerId, toFragment, addToBackStack, allowAnim);
         }
@@ -196,7 +196,7 @@ public abstract class ExtraTransaction {
         }
 
         @Override
-        public void remove(ISupportFragment fragment, boolean showPreFragment) {
+        public void remove(IArmFragment fragment, boolean showPreFragment) {
             mTransactionDelegate.remove(getFragmentManager(), (Fragment) fragment, showPreFragment);
         }
 
@@ -225,62 +225,62 @@ public abstract class ExtraTransaction {
         }
 
         @Override
-        public void add(ISupportFragment toFragment) {
+        public void add(IArmFragment toFragment) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
-            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, ISupportFragment.STANDARD, TransactionDelegate.TYPE_ADD_WITHOUT_HIDE);
+            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, IArmFragment.STANDARD, TransactionDelegate.TYPE_ADD_WITHOUT_HIDE);
         }
 
         @Override
-        public void start(ISupportFragment toFragment) {
-            start(toFragment, ISupportFragment.STANDARD);
+        public void start(IArmFragment toFragment) {
+            start(toFragment, IArmFragment.STANDARD);
         }
 
         @Override
-        public void startDontHideSelf(ISupportFragment toFragment) {
+        public void startDontHideSelf(IArmFragment toFragment) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
-            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, ISupportFragment.STANDARD, TransactionDelegate.TYPE_ADD_WITHOUT_HIDE);
+            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, IArmFragment.STANDARD, TransactionDelegate.TYPE_ADD_WITHOUT_HIDE);
         }
 
         @Override
-        public void startDontHideSelf(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode) {
+        public void startDontHideSelf(IArmFragment toFragment, @IArmFragment.LaunchMode int launchMode) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
             mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, launchMode, TransactionDelegate.TYPE_ADD_WITHOUT_HIDE);
         }
 
         @Override
-        public void start(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode) {
+        public void start(IArmFragment toFragment, @IArmFragment.LaunchMode int launchMode) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
             mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, launchMode, TransactionDelegate.TYPE_ADD);
         }
 
         @Override
-        public void startForResult(ISupportFragment toFragment, int requestCode) {
+        public void startForResult(IArmFragment toFragment, int requestCode) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
-            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, requestCode, ISupportFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT);
+            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, requestCode, IArmFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT);
         }
 
         @Override
-        public void startForResultDontHideSelf(ISupportFragment toFragment, int requestCode) {
+        public void startForResultDontHideSelf(IArmFragment toFragment, int requestCode) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
-            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, requestCode, ISupportFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT_WITHOUT_HIDE);
+            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, requestCode, IArmFragment.STANDARD, TransactionDelegate.TYPE_ADD_RESULT_WITHOUT_HIDE);
         }
 
         @Override
-        public void startWithPop(ISupportFragment toFragment) {
+        public void startWithPop(IArmFragment toFragment) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
             mTransactionDelegate.startWithPop(getFragmentManager(), mSupportF, toFragment);
         }
 
         @Override
-        public void startWithPopTo(ISupportFragment toFragment, String targetFragmentTag, boolean includeTargetFragment) {
+        public void startWithPopTo(IArmFragment toFragment, String targetFragmentTag, boolean includeTargetFragment) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
             mTransactionDelegate.startWithPopTo(getFragmentManager(), mSupportF, toFragment, targetFragmentTag, includeTargetFragment);
         }
 
         @Override
-        public void replace(ISupportFragment toFragment) {
+        public void replace(IArmFragment toFragment) {
             toFragment.getSupportDelegate().mTransactionRecord = mRecord;
-            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, ISupportFragment.STANDARD, TransactionDelegate.TYPE_REPLACE);
+            mTransactionDelegate.dispatchStartTransaction(getFragmentManager(), mSupportF, toFragment, 0, IArmFragment.STANDARD, TransactionDelegate.TYPE_REPLACE);
         }
 
         private FragmentManager getFragmentManager() {

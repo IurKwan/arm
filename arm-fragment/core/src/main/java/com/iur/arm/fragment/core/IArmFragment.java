@@ -10,7 +10,7 @@ import com.iur.arm.fragment.core.anim.FragmentAnimator;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-public interface ISupportFragment {
+public interface IArmFragment {
     // LaunchMode
     int STANDARD = 0;
     int SINGLETOP = 1;

@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentationMagician;
 
-import com.iur.arm.fragment.core.ISupportFragment;
+import com.iur.arm.fragment.core.IArmFragment;
 
 import java.util.List;
 
@@ -29,10 +29,10 @@ public class VisibleDelegate {
     private Handler mHandler;
     private Bundle mSaveInstanceState;
 
-    private final ISupportFragment mSupportF;
+    private final IArmFragment mSupportF;
     private final Fragment mFragment;
 
-    public VisibleDelegate(ISupportFragment fragment) {
+    public VisibleDelegate(IArmFragment fragment) {
         this.mSupportF = fragment;
         this.mFragment = (Fragment) fragment;
     }
@@ -128,8 +128,8 @@ public class VisibleDelegate {
         FragmentManager fragmentManager = mFragment.getChildFragmentManager();
         List<Fragment> childFragments = FragmentationMagician.getActiveFragments(fragmentManager);
         for (Fragment child : childFragments) {
-            if (child instanceof ISupportFragment && !child.isHidden() && child.getUserVisibleHint()) {
-                ((ISupportFragment) child).getSupportDelegate().getVisibleDelegate().onFragmentShownWhenNotResumed();
+            if (child instanceof IArmFragment && !child.isHidden() && child.getUserVisibleHint()) {
+                ((IArmFragment) child).getSupportDelegate().getVisibleDelegate().onFragmentShownWhenNotResumed();
             }
         }
     }
@@ -206,8 +206,8 @@ public class VisibleDelegate {
             FragmentManager fragmentManager = mFragment.getChildFragmentManager();
             List<Fragment> childFragments = FragmentationMagician.getActiveFragments(fragmentManager);
             for (Fragment child : childFragments) {
-                if (child instanceof ISupportFragment && !child.isHidden() && child.getUserVisibleHint()) {
-                    ((ISupportFragment) child).getSupportDelegate().getVisibleDelegate().dispatchSupportVisible(visible);
+                if (child instanceof IArmFragment && !child.isHidden() && child.getUserVisibleHint()) {
+                    ((IArmFragment) child).getSupportDelegate().getVisibleDelegate().dispatchSupportVisible(visible);
                 }
             }
         }
@@ -216,8 +216,8 @@ public class VisibleDelegate {
     private boolean isParentInvisible() {
         Fragment parentFragment = mFragment.getParentFragment();
 
-        if (parentFragment instanceof ISupportFragment) {
-            return !((ISupportFragment) parentFragment).isSupportVisible();
+        if (parentFragment instanceof IArmFragment) {
+            return !((IArmFragment) parentFragment).isSupportVisible();
         }
 
         return parentFragment != null && !parentFragment.isVisible();

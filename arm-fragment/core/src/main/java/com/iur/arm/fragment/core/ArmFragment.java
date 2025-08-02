@@ -14,15 +14,15 @@ import androidx.fragment.app.Fragment;
 import com.iur.arm.fragment.core.anim.FragmentAnimator;
 
 
-public class SupportFragment extends Fragment implements ISupportFragment {
+public class ArmFragment extends Fragment implements IArmFragment {
     final SupportFragmentDelegate mDelegate = new SupportFragmentDelegate(this);
-    protected SupportActivity _mActivity;
+    protected ArmActivity _mActivity;
 
-    public SupportFragment() {
+    public ArmFragment() {
 
     }
 
-    public SupportFragment(int contentLayoutId) {
+    public ArmFragment(int contentLayoutId) {
         super(contentLayoutId);
     }
 
@@ -44,7 +44,7 @@ public class SupportFragment extends Fragment implements ISupportFragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mDelegate.onAttach((Activity) context);
-        _mActivity = (SupportActivity) mDelegate.getActivity();
+        _mActivity = (ArmActivity) mDelegate.getActivity();
     }
 
     @Override
@@ -223,7 +223,7 @@ public class SupportFragment extends Fragment implements ISupportFragment {
      * <p>
      * Similar to {@link Activity#setResult(int, Intent)}
      *
-     * @see #startForResult(ISupportFragment, int)
+     * @see #startForResult(IArmFragment, int)
      */
     @Override
     public void setFragmentResult(int resultCode, Bundle bundle) {
@@ -243,7 +243,7 @@ public class SupportFragment extends Fragment implements ISupportFragment {
     /**
      * 添加NewBundle,用于启动模式为SingleTask/SingleTop时
      *
-     * @see #start(ISupportFragment, int)
+     * @see #start(IArmFragment, int)
      */
     @Override
     public void putNewBundle(Bundle newBundle) {
@@ -273,18 +273,18 @@ public class SupportFragment extends Fragment implements ISupportFragment {
      * @param containerId 容器id
      * @param toFragment  目标Fragment
      */
-    public void loadRootFragment(int containerId, ISupportFragment toFragment) {
+    public void loadRootFragment(int containerId, IArmFragment toFragment) {
         mDelegate.loadRootFragment(containerId, toFragment);
     }
 
-    public void loadRootFragment(int containerId, ISupportFragment toFragment, boolean addToBackStack, boolean allowAnim) {
+    public void loadRootFragment(int containerId, IArmFragment toFragment, boolean addToBackStack, boolean allowAnim) {
         mDelegate.loadRootFragment(containerId, toFragment, addToBackStack, allowAnim);
     }
 
     /**
      * 加载多个同级根Fragment,类似Wechat, QQ主页的场景
      */
-    public void loadMultipleRootFragment(int containerId, int showPosition, ISupportFragment... toFragments) {
+    public void loadMultipleRootFragment(int containerId, int showPosition, IArmFragment... toFragments) {
         mDelegate.loadMultipleRootFragment(containerId, showPosition, toFragments);
     }
 
@@ -292,57 +292,57 @@ public class SupportFragment extends Fragment implements ISupportFragment {
      * show一个Fragment,hide其他同栈所有Fragment
      * 使用该方法时，要确保同级栈内无多余的Fragment,(只有通过loadMultipleRootFragment()载入的Fragment)
      * <p>
-     * 建议使用更明确的{@link #showHideFragment(ISupportFragment, ISupportFragment)}
+     * 建议使用更明确的{@link #showHideFragment(IArmFragment, IArmFragment)}
      *
      * @param showFragment 需要show的Fragment
      */
-    public void showHideFragment(ISupportFragment showFragment) {
+    public void showHideFragment(IArmFragment showFragment) {
         mDelegate.showHideFragment(showFragment);
     }
 
     /**
      * show一个Fragment,hide一个Fragment ; 主要用于类似微信主页那种 切换tab的情况
      */
-    public void showHideFragment(ISupportFragment showFragment, ISupportFragment hideFragment) {
+    public void showHideFragment(IArmFragment showFragment, IArmFragment hideFragment) {
         mDelegate.showHideFragment(showFragment, hideFragment);
     }
 
-    public void start(ISupportFragment toFragment) {
+    public void start(IArmFragment toFragment) {
         mDelegate.start(toFragment);
     }
 
     /**
      * @param launchMode Similar to Activity's LaunchMode.
      */
-    public void start(final ISupportFragment toFragment, @LaunchMode int launchMode) {
+    public void start(final IArmFragment toFragment, @LaunchMode int launchMode) {
         mDelegate.start(toFragment, launchMode);
     }
 
     /**
      * Launch an fragment for which you would like a result when it poped.
      */
-    public void startForResult(ISupportFragment toFragment, int requestCode) {
+    public void startForResult(IArmFragment toFragment, int requestCode) {
         mDelegate.startForResult(toFragment, requestCode);
     }
 
     /**
      * Start the target Fragment and pop itself
      */
-    public void startWithPop(ISupportFragment toFragment) {
+    public void startWithPop(IArmFragment toFragment) {
         mDelegate.startWithPop(toFragment);
     }
 
     /**
      * @see #popTo(Class, boolean)
      * +
-     * @see #start(ISupportFragment)
+     * @see #start(IArmFragment)
      */
-    public void startWithPopTo(ISupportFragment toFragment, Class<?> targetFragmentClass, boolean includeTargetFragment) {
+    public void startWithPopTo(IArmFragment toFragment, Class<?> targetFragmentClass, boolean includeTargetFragment) {
         mDelegate.startWithPopTo(toFragment, targetFragmentClass, includeTargetFragment);
     }
 
 
-    public void replaceFragment(ISupportFragment toFragment, boolean addToBackStack) {
+    public void replaceFragment(IArmFragment toFragment, boolean addToBackStack) {
         mDelegate.replaceFragment(toFragment, addToBackStack);
     }
 
@@ -397,32 +397,32 @@ public class SupportFragment extends Fragment implements ISupportFragment {
     /**
      * 得到位于栈顶Fragment
      */
-    public ISupportFragment getTopFragment() {
+    public IArmFragment getTopFragment() {
         return SupportHelper.getTopFragment(getParentFragmentManager());
     }
 
-    public ISupportFragment getTopChildFragment() {
+    public IArmFragment getTopChildFragment() {
         return SupportHelper.getTopFragment(getChildFragmentManager());
     }
 
     /**
      * @return 位于当前Fragment的前一个Fragment
      */
-    public ISupportFragment getPreFragment() {
+    public IArmFragment getPreFragment() {
         return SupportHelper.getPreFragment(this);
     }
 
     /**
      * 获取栈内的fragment对象
      */
-    public <T extends ISupportFragment> T findFragment(Class<T> fragmentClass) {
+    public <T extends IArmFragment> T findFragment(Class<T> fragmentClass) {
         return SupportHelper.findFragment(getParentFragmentManager(), fragmentClass);
     }
 
     /**
      * 获取栈内的fragment对象
      */
-    public <T extends ISupportFragment> T findChildFragment(Class<T> fragmentClass) {
+    public <T extends IArmFragment> T findChildFragment(Class<T> fragmentClass) {
         return SupportHelper.findFragment(getChildFragmentManager(), fragmentClass);
     }
 }

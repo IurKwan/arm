@@ -49,11 +49,11 @@ public class SupportHelper {
     /**
      * 获得栈顶SupportFragment
      */
-    public static ISupportFragment getTopFragment(FragmentManager fragmentManager) {
+    public static IArmFragment getTopFragment(FragmentManager fragmentManager) {
         return getTopFragment(fragmentManager, 0);
     }
 
-    public static ISupportFragment getTopFragment(FragmentManager fragmentManager, int containerId) {
+    public static IArmFragment getTopFragment(FragmentManager fragmentManager, int containerId) {
         List<Fragment> fragmentList = FragmentationMagician.getActiveFragments(fragmentManager);
         if (fragmentList == null) {
             return null;
@@ -61,8 +61,8 @@ public class SupportHelper {
 
         for (int i = fragmentList.size() - 1; i >= 0; i--) {
             Fragment fragment = fragmentList.get(i);
-            if (fragment instanceof ISupportFragment) {
-                ISupportFragment iFragment = (ISupportFragment) fragment;
+            if (fragment instanceof IArmFragment) {
+                IArmFragment iFragment = (IArmFragment) fragment;
                 if (containerId == 0) {
                     return iFragment;
                 }
@@ -80,7 +80,7 @@ public class SupportHelper {
      *
      * @param fragment 目标Fragment
      */
-    public static ISupportFragment getPreFragment(Fragment fragment) {
+    public static IArmFragment getPreFragment(Fragment fragment) {
         FragmentManager fragmentManager = fragment.getParentFragmentManager();
         if (fragmentManager == null) {
             return null;
@@ -94,8 +94,8 @@ public class SupportHelper {
         int index = fragmentList.indexOf(fragment);
         for (int i = index - 1; i >= 0; i--) {
             Fragment preFragment = fragmentList.get(i);
-            if (preFragment instanceof ISupportFragment) {
-                return (ISupportFragment) preFragment;
+            if (preFragment instanceof IArmFragment) {
+                return (IArmFragment) preFragment;
             }
         }
         return null;
@@ -106,7 +106,7 @@ public class SupportHelper {
      * find Fragment from FragmentStack
      */
     @SuppressWarnings("unchecked")
-    public static <T extends ISupportFragment> T findFragment(FragmentManager fragmentManager, Class<T> fragmentClass) {
+    public static <T extends IArmFragment> T findFragment(FragmentManager fragmentManager, Class<T> fragmentClass) {
         return findStackFragment(fragmentClass, null, fragmentManager);
     }
 
@@ -116,19 +116,19 @@ public class SupportHelper {
      * find Fragment from FragmentStack
      */
     @SuppressWarnings("unchecked")
-    public static <T extends ISupportFragment> T findFragment(FragmentManager fragmentManager, String fragmentTag) {
+    public static <T extends IArmFragment> T findFragment(FragmentManager fragmentManager, String fragmentTag) {
         return findStackFragment(null, fragmentTag, fragmentManager);
     }
 
     /**
      * 从栈顶开始，寻找FragmentManager以及其所有子栈, 直到找到状态为show & userVisible的Fragment
      */
-    public static ISupportFragment getActiveFragment(FragmentManager fragmentManager) {
+    public static IArmFragment getActiveFragment(FragmentManager fragmentManager) {
         return getActiveFragment(fragmentManager, null);
     }
 
     @SuppressWarnings("unchecked")
-    static <T extends ISupportFragment> T findStackFragment(Class<T> fragmentClass, String toFragmentTag, FragmentManager fragmentManager) {
+    static <T extends IArmFragment> T findStackFragment(Class<T> fragmentClass, String toFragmentTag, FragmentManager fragmentManager) {
         Fragment fragment = null;
 
         if (toFragmentTag == null) {
@@ -141,7 +141,7 @@ public class SupportHelper {
 
             for (int i = sizeChildFrgList - 1; i >= 0; i--) {
                 Fragment brotherFragment = fragmentList.get(i);
-                if (brotherFragment instanceof ISupportFragment && brotherFragment.getClass().getName().equals(fragmentClass.getName())) {
+                if (brotherFragment instanceof IArmFragment && brotherFragment.getClass().getName().equals(fragmentClass.getName())) {
                     fragment = brotherFragment;
                     break;
                 }
@@ -155,16 +155,16 @@ public class SupportHelper {
         return (T) fragment;
     }
 
-    private static ISupportFragment getActiveFragment(FragmentManager fragmentManager, ISupportFragment parentFragment) {
+    private static IArmFragment getActiveFragment(FragmentManager fragmentManager, IArmFragment parentFragment) {
         List<Fragment> fragmentList = FragmentationMagician.getActiveFragments(fragmentManager);
         if (fragmentList == null) {
             return parentFragment;
         }
         for (int i = fragmentList.size() - 1; i >= 0; i--) {
             Fragment fragment = fragmentList.get(i);
-            if (fragment instanceof ISupportFragment) {
+            if (fragment instanceof IArmFragment) {
                 if (fragment.isResumed() && !fragment.isHidden() && fragment.getUserVisibleHint()) {
-                    return getActiveFragment(fragment.getChildFragmentManager(), (ISupportFragment) fragment);
+                    return getActiveFragment(fragment.getChildFragmentManager(), (IArmFragment) fragment);
                 }
             }
         }
@@ -174,21 +174,21 @@ public class SupportHelper {
     /**
      * Get the topFragment from BackStack
      */
-    public static ISupportFragment getBackStackTopFragment(FragmentManager fragmentManager) {
+    public static IArmFragment getBackStackTopFragment(FragmentManager fragmentManager) {
         return getBackStackTopFragment(fragmentManager, 0);
     }
 
     /**
      * Get the topFragment from BackStack
      */
-    public static ISupportFragment getBackStackTopFragment(FragmentManager fragmentManager, int containerId) {
+    public static IArmFragment getBackStackTopFragment(FragmentManager fragmentManager, int containerId) {
         int count = fragmentManager.getBackStackEntryCount();
 
         for (int i = count - 1; i >= 0; i--) {
             FragmentManager.BackStackEntry entry = fragmentManager.getBackStackEntryAt(i);
             Fragment fragment = fragmentManager.findFragmentByTag(entry.getName());
-            if (fragment instanceof ISupportFragment) {
-                ISupportFragment supportFragment = (ISupportFragment) fragment;
+            if (fragment instanceof IArmFragment) {
+                IArmFragment supportFragment = (IArmFragment) fragment;
                 if (containerId == 0) {
                     return supportFragment;
                 }
@@ -202,7 +202,7 @@ public class SupportHelper {
     }
 
     @SuppressWarnings("unchecked")
-    static <T extends ISupportFragment> T findBackStackFragment(Class<T> fragmentClass, String toFragmentTag, FragmentManager fragmentManager) {
+    static <T extends IArmFragment> T findBackStackFragment(Class<T> fragmentClass, String toFragmentTag, FragmentManager fragmentManager) {
         int count = fragmentManager.getBackStackEntryCount();
 
         if (toFragmentTag == null) {
@@ -214,7 +214,7 @@ public class SupportHelper {
 
             if (toFragmentTag.equals(entry.getName())) {
                 Fragment fragment = fragmentManager.findFragmentByTag(entry.getName());
-                if (fragment instanceof ISupportFragment) {
+                if (fragment instanceof IArmFragment) {
                     return (T) fragment;
                 }
             }
