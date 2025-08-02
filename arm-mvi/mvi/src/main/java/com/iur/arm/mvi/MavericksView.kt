@@ -1,10 +1,8 @@
 package com.iur.arm.mvi
 
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
-import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner

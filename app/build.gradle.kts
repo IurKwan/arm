@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    api(project(":arm-mvi:rxjava"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
