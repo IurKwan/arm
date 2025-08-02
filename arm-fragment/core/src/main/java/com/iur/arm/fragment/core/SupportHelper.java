@@ -11,7 +11,6 @@ import androidx.fragment.app.FragmentationMagician;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class SupportHelper {
     private static final long SHOW_SPACE = 200L;
 
@@ -27,12 +26,7 @@ public class SupportHelper {
         }
         final InputMethodManager imm = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         view.requestFocus();
-        view.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
-            }
-        }, SHOW_SPACE);
+        view.postDelayed(() -> imm.showSoftInput(view, InputMethodManager.SHOW_FORCED), SHOW_SPACE);
     }
 
     /**

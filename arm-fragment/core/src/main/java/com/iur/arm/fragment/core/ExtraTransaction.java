@@ -1,11 +1,9 @@
 package com.iur.arm.fragment.core;
 
-import android.os.Build;
 import android.view.View;
 
 import androidx.annotation.AnimRes;
 import androidx.annotation.AnimatorRes;
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
