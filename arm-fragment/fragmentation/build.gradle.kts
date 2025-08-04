@@ -34,7 +34,7 @@ android {
 }
 
 dependencies {
-    api(project(":arm-fragment:core"))
+    api(libs.arm.fragment.core)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -58,7 +58,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-fragment-fragmentation"
-            version = "1.0.0"
+            version = "0.0.1"
 
             afterEvaluate {
                 from(components["release"])

@@ -9,6 +9,13 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven {
+            credentials {
+                username = "REDACTED_ALIYUN_USERNAME"
+                password = "REDACTED_ALIYUN_PASSWORD"
+            }
+            setUrl("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+        }
     }
 }
 dependencyResolutionManagement {
@@ -16,6 +23,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            credentials {
+                username = "REDACTED_ALIYUN_USERNAME"
+                password = "REDACTED_ALIYUN_PASSWORD"
+            }
+            setUrl("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+        }
     }
 }
 
