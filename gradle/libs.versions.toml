@@ -19,7 +19,7 @@ rxjava3 = "3.1.10"
 timber = "5.0.1"
 viewModelCompose = "2.9.2"
 armFragmentCore = "1.0.0"
-armMvi = "0.0.1"
+armMvi = "0.0.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,7 +55,8 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 viewModel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "viewModelCompose" }
 runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
-hilt-compiler = "com.google.dagger:hilt-android-compiler:_"
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+kotlin-coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:_"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

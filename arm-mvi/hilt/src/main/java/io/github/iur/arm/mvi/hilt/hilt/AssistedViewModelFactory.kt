@@ -1,4 +1,4 @@
-package io.github.iur.arm.mvi.hilt
+package io.github.iur.arm.mvi.hilt.hilt
 
 import io.github.iur.arm.mvi.MavericksViewModel
 import io.github.iur.arm.mvi.common.MavericksState

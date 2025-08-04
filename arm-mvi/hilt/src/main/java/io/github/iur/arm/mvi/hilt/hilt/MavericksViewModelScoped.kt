@@ -1,4 +1,4 @@
-package io.github.iur.arm.mvi.hilt
+package io.github.iur.arm.mvi.hilt.hilt
 
 import javax.inject.Scope
 
