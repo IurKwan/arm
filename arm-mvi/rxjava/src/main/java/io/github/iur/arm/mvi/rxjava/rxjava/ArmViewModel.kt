@@ -42,14 +42,14 @@ import kotlin.reflect.KProperty1
  * Base ViewModel implementation that all other ViewModels should extend.
  */
 @OptIn(InternalMavericksApi::class)
-abstract class BaseMvRxViewModel<S : MavericksState>(
+abstract class ArmViewModel<S : MavericksState>(
     initialState: S,
 ) : MavericksViewModel<S>(initialState) {
     private val tag by lazy { javaClass.simpleName }
     private val disposables = CompositeDisposable()
 
     /**
-     * Define a [LifecycleOwner] to control subscriptions between [BaseMvRxViewModel]s. This only
+     * Define a [LifecycleOwner] to control subscriptions between [ArmViewModel]s. This only
      * provides two states, [Lifecycle.State.RESUMED] and [Lifecycle.State.DESTROYED] as it follows
      * the [ViewModel] object lifecycle. That is, when instantiated the lifecycle will be
      * [Lifecycle.State.RESUMED] and when [ViewModel.onCleared] is called the lifecycle will be
@@ -138,7 +138,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
         successMetaData: ((T) -> Any)? = null,
         stateReducer: S.(Async<V>) -> S,
     ): Disposable {
-        val blockExecutions = config.onExecute(this@BaseMvRxViewModel)
+        val blockExecutions = config.onExecute(this@ArmViewModel)
         if (blockExecutions != MavericksBlockExecutions.No) {
             if (blockExecutions == MavericksBlockExecutions.WithLoading) {
                 setState { stateReducer(Loading()) }
@@ -197,7 +197,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * For ViewModels that want to subscribe to another ViewModel.
      */
     protected fun <S : MavericksState> subscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         subscriber: (S) -> Unit,
     ) {
         assertSubscribeToDifferentViewModel(viewModel)
@@ -219,7 +219,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for only a single property in a different ViewModel.
      */
     protected fun <A, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         subscriber: (A) -> Unit,
     ) {
@@ -259,7 +259,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * for onSuccess and onFail which automatically unwrap the value or error.
      */
     protected fun <T, S : MavericksState> asyncSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         asyncProp: KProperty1<S, Async<T>>,
         onFail: ((Throwable) -> Unit)? = null,
         onSuccess: ((T) -> Unit)? = null,
@@ -291,7 +291,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for two properties in a different ViewModel.
      */
     protected fun <A, B, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         subscriber: (A, B) -> Unit,
@@ -325,7 +325,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for three properties in a different ViewModel.
      */
     protected fun <A, B, C, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         prop3: KProperty1<S, C>,
@@ -362,7 +362,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for four properties in a different ViewModel.
      */
     protected fun <A, B, C, D, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         prop3: KProperty1<S, C>,
@@ -396,7 +396,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for five properties in a different ViewModel.
      */
     protected fun <A, B, C, D, E, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         prop3: KProperty1<S, C>,
@@ -448,7 +448,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for six properties in a different ViewModel.
      */
     protected fun <A, B, C, D, E, F, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         prop3: KProperty1<S, C>,
@@ -504,7 +504,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
      * Subscribe to state changes for seven properties in a different ViewModel.
      */
     protected fun <A, B, C, D, E, F, G, S : MavericksState> selectSubscribe(
-        viewModel: BaseMvRxViewModel<S>,
+        viewModel: ArmViewModel<S>,
         prop1: KProperty1<S, A>,
         prop2: KProperty1<S, B>,
         prop3: KProperty1<S, C>,
@@ -540,7 +540,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
     }
 
     protected fun Disposable.disposeOnClear(): Disposable {
-        printState("${this@BaseMvRxViewModel.javaClass.simpleName} disposables size = ${disposables.size()}")
+        printState("${this@ArmViewModel.javaClass.simpleName} disposables size = ${disposables.size()}")
         disposables.add(this)
         return this
     }
@@ -554,7 +554,7 @@ abstract class BaseMvRxViewModel<S : MavericksState>(
             cancel()
         }
 
-    private fun <S : MavericksState> assertSubscribeToDifferentViewModel(viewModel: BaseMvRxViewModel<S>) {
+    private fun <S : MavericksState> assertSubscribeToDifferentViewModel(viewModel: ArmViewModel<S>) {
         require(this != viewModel) {
             "This method is for subscribing to other view models. Please pass a different instance as the argument."
         }
