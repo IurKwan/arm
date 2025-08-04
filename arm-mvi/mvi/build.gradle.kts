@@ -7,10 +7,32 @@ plugins {
 }
 
 android {
+    namespace = "io.github.iur.arm.mvi.mvi"
+    compileSdk = 36
     resourcePrefix = "mvi_"
 
     defaultConfig {
+        minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = "11"
     }
 }
 
@@ -19,8 +41,8 @@ tasks.withType<KotlinCompile>().configureEach {
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=com.iur.arm.mvi.common.InternalMavericksApi",
-            "-opt-in=com.iur.arm.mvi.common.ExperimentalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.InternalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.ExperimentalMavericksApi",
         )
     }
 }

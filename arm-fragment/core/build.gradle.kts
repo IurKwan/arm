@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.iur.arm.fragment.core"
+    namespace = "io.github.iur.arm.fragment.core"
     compileSdk = 36
 
     defaultConfig {

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.iur.arm.mvi.common"
+    namespace = "io.github.iur.arm.mvi.common"
     compileSdk = 36
 
     defaultConfig {
@@ -39,8 +39,8 @@ tasks.withType<KotlinCompile>().configureEach {
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=com.iur.arm.mvi.common.InternalMavericksApi",
-            "-opt-in=com.iur.arm.mvi.common.ExperimentalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.InternalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.ExperimentalMavericksApi",
         )
     }
 }

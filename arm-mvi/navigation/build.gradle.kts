@@ -10,13 +10,13 @@ tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=com.iur.arm.mvi.common.InternalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.InternalMavericksApi",
         )
     }
 }
 
 android {
-    namespace = "com.iur.arm.mvi.navigation"
+    namespace = "io.github.iur.arm.mvi.navigation"
     compileSdk = 36
 
     defaultConfig {

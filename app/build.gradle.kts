@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.iur.arm"
+    namespace = "io.github.iur.arm"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.iur.arm"
+        applicationId = "io.github.iur.arm"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

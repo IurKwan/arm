@@ -10,14 +10,14 @@ tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         freeCompilerArgs.addAll(
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=com.iur.arm.mvi.common.InternalMavericksApi",
-            "-opt-in=com.iur.arm.mvi.common.ExperimentalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.InternalMavericksApi",
+            "-opt-in=io.github.iur.arm.mvi.common.ExperimentalMavericksApi",
         )
     }
 }
 
 android {
-    namespace = "com.iur.arm.mvi.rxjava"
+    namespace = "io.github.iur.arm.mvi.rxjava"
     compileSdk = 36
 
     defaultConfig {

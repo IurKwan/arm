@@ -1,0 +1,48 @@
+package io.github.iur.arm.fragment.core.helper.internal;
+
+import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import io.github.iur.arm.fragment.core.IArmFragment;
+
+
+public final class ResultRecord implements Parcelable {
+    public int requestCode;
+    public int resultCode = 0;
+    public Bundle resultBundle;
+    public IArmFragment targetFragment;
+
+    public ResultRecord() {
+    }
+
+    private ResultRecord(Parcel in) {
+        requestCode = in.readInt();
+        resultCode = in.readInt();
+        resultBundle = in.readBundle(getClass().getClassLoader());
+    }
+
+    public static final Creator<ResultRecord> CREATOR = new Creator<>() {
+        @Override
+        public ResultRecord createFromParcel(Parcel in) {
+            return new ResultRecord(in);
+        }
+
+        @Override
+        public ResultRecord[] newArray(int size) {
+            return new ResultRecord[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(requestCode);
+        dest.writeInt(resultCode);
+        dest.writeBundle(resultBundle);
+    }
+}

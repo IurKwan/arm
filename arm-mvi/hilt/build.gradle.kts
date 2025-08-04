@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.iur.arm.mvi.hilt"
+    namespace = "io.github.iur.arm.mvi.hilt"
     compileSdk = 36
 
     defaultConfig {

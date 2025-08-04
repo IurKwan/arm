@@ -1,10 +1,11 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    `maven-publish`
 }
 
 android {
-    namespace = "com.iur.arm.fragment.fragmentation"
+    namespace = "io.github.iur.arm.fragment.fragmentation"
     compileSdk = 36
 
     defaultConfig {
@@ -19,7 +20,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -41,4 +42,59 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+android {
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "io.github.iur"
+            artifactId = "arm-fragment-fragmentation"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            pom {
+                name.set("ARM Fragment Fragmentation")
+                description.set("Fragment fragmentation library for ARM project")
+                url.set("https://github.com/your-repo/arm")
+
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("developer")
+                        name.set("Iur")
+                        email.set("guanzhirui@outlook.com")
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "aliyun"
+            url = uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+            credentials {
+                username = "REDACTED_ALIYUN_USERNAME"
+                password = "REDACTED_ALIYUN_PASSWORD"
+            }
+        }
+    }
 }

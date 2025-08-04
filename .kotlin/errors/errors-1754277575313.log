@@ -1,0 +1,237 @@
+kotlin version: 2.0.21
+error message: org.jetbrains.kotlin.backend.common.BackendException: Backend Internal error: Exception during IR lowering
+File being compiled: /Users/guanzhirui/rui-projects/arm/arm-mvi/compose/src/main/java/com/iur/arm/mvi/compose/MavericksComposeExtensions.kt
+The root cause java.lang.RuntimeException was thrown at: org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException(CodegenUtil.kt:253)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException$default(CodegenUtil.kt:236)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:65)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:52)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:38)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:27)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:14)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:62)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:371)
+	at org.jetbrains.kotlin.codegen.CodegenFactory.generateModule(CodegenFactory.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateModuleInFrontendIRMode(JvmIrCodegenFactory.kt:433)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.generateCodeFromIr(jvmCompilerPipeline.kt:246)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipeline.kt:142)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:148)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:43)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:103)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:49)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:464)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:73)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:301)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:675)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:92)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1660)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN name:mavericksViewModel visibility:public modality:FINAL <VM, S> (scope:androidx.lifecycle.LifecycleOwner, keyFactory:kotlin.Function0<kotlin.String>?, argsFactory:kotlin.Function0<kotlin.Any?>?) returnType:VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel [inline]
+  annotations:
+    Composable
+    Suppress(names = ["DEPRECATION"])
+  TYPE_PARAMETER name:VM index:0 variance: superTypes:[com.iur.arm.mvi.MavericksViewModel<S of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel>] reified:true
+  TYPE_PARAMETER name:S index:1 variance: superTypes:[com.iur.arm.mvi.common.MavericksState] reified:true
+  VALUE_PARAMETER name:scope index:0 type:androidx.lifecycle.LifecycleOwner
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=androidx.lifecycle.LifecycleOwner
+  VALUE_PARAMETER name:keyFactory index:1 type:kotlin.Function0<kotlin.String>? [noinline]
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.Function0<kotlin.String>?
+  VALUE_PARAMETER name:argsFactory index:2 type:kotlin.Function0<kotlin.Any?>? [noinline]
+    EXPRESSION_BODY
+      ERROR_EXPR 'Default Stub' type=kotlin.Function0<kotlin.Any?>?
+  BLOCK_BODY
+    VAR name:$i$f$mavericksViewModel type:kotlin.Int [val]
+      CONST Int type=kotlin.Int value=0
+    VAR name:activity type:androidx.activity.ComponentActivity? [val]
+      CALL 'public final fun extractActivityFromContext (context: android.content.Context): androidx.activity.ComponentActivity? declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt' type=androidx.activity.ComponentActivity? origin=null
+        context: CALL 'public final fun <get-current> (): T of androidx.compose.runtime.CompositionLocal [inline] declared in androidx.compose.runtime.CompositionLocal' type=android.content.Context origin=GET_PROPERTY
+          $this: TYPE_OP type=androidx.compose.runtime.CompositionLocal<T of androidx.compose.runtime.CompositionLocal> origin=IMPLICIT_CAST typeOperand=androidx.compose.runtime.CompositionLocal<T of androidx.compose.runtime.CompositionLocal>
+            CALL 'public final fun <get-LocalContext> (): androidx.compose.runtime.ProvidableCompositionLocal<android.content.Context> declared in androidx.compose.ui.platform.AndroidCompositionLocals_androidKt' type=androidx.compose.runtime.ProvidableCompositionLocal<android.content.Context> origin=GET_PROPERTY
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'public final fun checkNotNull <T> (value: T of kotlin.PreconditionsKt.checkNotNull?, lazyMessage: kotlin.Function0<kotlin.Any>): T of kotlin.PreconditionsKt.checkNotNull [inline] declared in kotlin.PreconditionsKt' type=androidx.activity.ComponentActivity origin=null
+        <T>: androidx.activity.ComponentActivity
+        value: GET_VAR 'val activity: androidx.activity.ComponentActivity? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.activity.ComponentActivity? origin=null
+        lazyMessage: BLOCK type=kotlin.Function0<kotlin.Any> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun mavericksViewModel$lambda$0 (): kotlin.Any declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt' type=kotlin.Function0<kotlin.Any> origin=INLINE_LAMBDA reflectionTarget=null
+      COMPOSITE type=kotlin.Unit origin=null
+    VAR name:viewModelStoreOwner type:androidx.lifecycle.ViewModelStoreOwner [val]
+      BLOCK type=androidx.lifecycle.ViewModelStoreOwner origin=FOLDED_ELVIS
+        WHEN type=androidx.lifecycle.ViewModelStoreOwner origin=FOLDED_ELVIS
+          BRANCH
+            if: COMPOSITE type=kotlin.Boolean origin=null
+              VAR IR_TEMPORARY_VARIABLE name:tmp0_elvis_lhs type:androidx.lifecycle.ViewModelStoreOwner? [val]
+                WHEN type=androidx.lifecycle.ViewModelStoreOwner? origin=null
+                  BRANCH
+                    if: TYPE_OP type=kotlin.Boolean origin=INSTANCEOF typeOperand=androidx.lifecycle.ViewModelStoreOwner
+                      GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+                    then: GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+                  BRANCH
+                    if: CONST Boolean type=kotlin.Boolean value=true
+                    then: CONST Null type=androidx.lifecycle.ViewModelStoreOwner? value=null
+              CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                  arg0: GET_VAR 'val tmp0_elvis_lhs: androidx.lifecycle.ViewModelStoreOwner? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.ViewModelStoreOwner? origin=null
+                  arg1: CONST Null type=kotlin.Nothing? value=null
+            then: GET_VAR 'val tmp0_elvis_lhs: androidx.lifecycle.ViewModelStoreOwner? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.ViewModelStoreOwner? origin=null
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: BLOCK type=kotlin.Nothing origin=null
+              CALL 'public final fun error (message: kotlin.Any): kotlin.Nothing [inline] declared in kotlin.PreconditionsKt' type=kotlin.Nothing origin=null
+                message: CONST String type=kotlin.String value="LifecycleOwner must be a ViewModelStoreOwner!"
+              CALL 'public final fun throwKotlinNothingValueException (): kotlin.Nothing declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Nothing origin=null
+    VAR name:savedStateRegistryOwner type:androidx.savedstate.SavedStateRegistryOwner [val]
+      BLOCK type=androidx.savedstate.SavedStateRegistryOwner origin=FOLDED_ELVIS
+        WHEN type=androidx.savedstate.SavedStateRegistryOwner origin=FOLDED_ELVIS
+          BRANCH
+            if: COMPOSITE type=kotlin.Boolean origin=null
+              VAR IR_TEMPORARY_VARIABLE name:tmp1_elvis_lhs type:androidx.savedstate.SavedStateRegistryOwner? [val]
+                WHEN type=androidx.savedstate.SavedStateRegistryOwner? origin=null
+                  BRANCH
+                    if: TYPE_OP type=kotlin.Boolean origin=INSTANCEOF typeOperand=androidx.savedstate.SavedStateRegistryOwner
+                      GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+                    then: GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+                  BRANCH
+                    if: CONST Boolean type=kotlin.Boolean value=true
+                    then: CONST Null type=androidx.savedstate.SavedStateRegistryOwner? value=null
+              CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                  arg0: GET_VAR 'val tmp1_elvis_lhs: androidx.savedstate.SavedStateRegistryOwner? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.savedstate.SavedStateRegistryOwner? origin=null
+                  arg1: CONST Null type=kotlin.Nothing? value=null
+            then: GET_VAR 'val tmp1_elvis_lhs: androidx.savedstate.SavedStateRegistryOwner? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.savedstate.SavedStateRegistryOwner? origin=null
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: BLOCK type=kotlin.Nothing origin=null
+              CALL 'public final fun error (message: kotlin.Any): kotlin.Nothing [inline] declared in kotlin.PreconditionsKt' type=kotlin.Nothing origin=null
+                message: CONST String type=kotlin.String value="LifecycleOwner must be a SavedStateRegistryOwner!"
+              CALL 'public final fun throwKotlinNothingValueException (): kotlin.Nothing declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Nothing origin=null
+    VAR name:savedStateRegistry type:androidx.savedstate.SavedStateRegistry [val]
+      CALL 'public abstract fun <get-savedStateRegistry> (): androidx.savedstate.SavedStateRegistry declared in androidx.savedstate.SavedStateRegistryOwner' type=androidx.savedstate.SavedStateRegistry origin=GET_PROPERTY
+        $this: GET_VAR 'val savedStateRegistryOwner: androidx.savedstate.SavedStateRegistryOwner [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.savedstate.SavedStateRegistryOwner origin=null
+    VAR name:viewModelClass type:kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> [val]
+      CLASS_REFERENCE 'TYPE_PARAMETER name:VM index:0 variance: superTypes:[com.iur.arm.mvi.MavericksViewModel<S of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel>] reified:true' type=kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel>
+    VAR name:view type:android.view.View [val]
+      CALL 'public final fun <get-current> (): T of androidx.compose.runtime.CompositionLocal [inline] declared in androidx.compose.runtime.CompositionLocal' type=android.view.View origin=GET_PROPERTY
+        $this: TYPE_OP type=androidx.compose.runtime.CompositionLocal<T of androidx.compose.runtime.CompositionLocal> origin=IMPLICIT_CAST typeOperand=androidx.compose.runtime.CompositionLocal<T of androidx.compose.runtime.CompositionLocal>
+          CALL 'public final fun <get-LocalView> (): androidx.compose.runtime.ProvidableCompositionLocal<android.view.View> declared in androidx.compose.ui.platform.AndroidCompositionLocals_androidKt' type=androidx.compose.runtime.ProvidableCompositionLocal<android.view.View> origin=GET_PROPERTY
+    VAR name:viewModelContext type:com.iur.arm.mvi.ViewModelContext [val]
+      CALL 'public final fun remember <T> (vararg keys: kotlin.Any?, calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=com.iur.arm.mvi.ViewModelContext origin=null
+        <T>: com.iur.arm.mvi.ViewModelContext
+        keys: BLOCK type=kotlin.Array<out kotlin.Any?> origin=null
+          VAR IR_TEMPORARY_VARIABLE name:tmp0 type:kotlin.Array<out kotlin.Any?> [val]
+            CALL 'public final fun arrayOfNulls <T> (size: kotlin.Int): kotlin.Array<T of kotlin.arrayOfNulls?> declared in kotlin' type=kotlin.Array<out kotlin.Any?> origin=null
+              <T>: kotlin.Any?
+              size: CONST Int type=kotlin.Int value=4
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            $this: GET_VAR 'val tmp0: kotlin.Array<out kotlin.Any?> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Array<out kotlin.Any?> origin=null
+            index: CONST Int type=kotlin.Int value=0
+            value: GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            $this: GET_VAR 'val tmp0: kotlin.Array<out kotlin.Any?> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Array<out kotlin.Any?> origin=null
+            index: CONST Int type=kotlin.Int value=1
+            value: GET_VAR 'val activity: androidx.activity.ComponentActivity? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.activity.ComponentActivity? origin=null
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            $this: GET_VAR 'val tmp0: kotlin.Array<out kotlin.Any?> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Array<out kotlin.Any?> origin=null
+            index: CONST Int type=kotlin.Int value=2
+            value: GET_VAR 'val viewModelStoreOwner: androidx.lifecycle.ViewModelStoreOwner [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.ViewModelStoreOwner origin=null
+          CALL 'public final fun set (index: kotlin.Int, value: T of kotlin.Array): kotlin.Unit [operator] declared in kotlin.Array' type=kotlin.Unit origin=null
+            $this: GET_VAR 'val tmp0: kotlin.Array<out kotlin.Any?> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Array<out kotlin.Any?> origin=null
+            index: CONST Int type=kotlin.Int value=3
+            value: GET_VAR 'val savedStateRegistry: androidx.savedstate.SavedStateRegistry [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.savedstate.SavedStateRegistry origin=null
+          GET_VAR 'val tmp0: kotlin.Array<out kotlin.Any?> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Array<out kotlin.Any?> origin=null
+        calculation: BLOCK type=kotlin.Function0<com.iur.arm.mvi.ViewModelContext> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun mavericksViewModel$lambda$1 ($scope: androidx.lifecycle.LifecycleOwner, $view: android.view.View, $argsFactory: kotlin.Function0<kotlin.Any?>?, $activity: androidx.activity.ComponentActivity?, $viewModelStoreOwner: androidx.lifecycle.ViewModelStoreOwner, $savedStateRegistry: androidx.savedstate.SavedStateRegistry): com.iur.arm.mvi.ViewModelContext declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt' type=kotlin.Function0<com.iur.arm.mvi.ViewModelContext> origin=INLINE_LAMBDA reflectionTarget=null
+            $scope: GET_VAR 'scope: androidx.lifecycle.LifecycleOwner declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.LifecycleOwner origin=null
+            $view: GET_VAR 'val view: android.view.View [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=android.view.View origin=null
+            $argsFactory: GET_VAR 'argsFactory: kotlin.Function0<kotlin.Any?>? [noinline] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Function0<kotlin.Any?>? origin=null
+            $activity: GET_VAR 'val activity: androidx.activity.ComponentActivity? [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.activity.ComponentActivity? origin=null
+            $viewModelStoreOwner: GET_VAR 'val viewModelStoreOwner: androidx.lifecycle.ViewModelStoreOwner [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.lifecycle.ViewModelStoreOwner origin=null
+            $savedStateRegistry: GET_VAR 'val savedStateRegistry: androidx.savedstate.SavedStateRegistry [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=androidx.savedstate.SavedStateRegistry origin=null
+    RETURN type=kotlin.Nothing from='public final fun mavericksViewModel <VM, S> (scope: androidx.lifecycle.LifecycleOwner, keyFactory: kotlin.Function0<kotlin.String>?, argsFactory: kotlin.Function0<kotlin.Any?>?): VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel [inline] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt'
+      CALL 'public final fun remember <T> (key1: kotlin.Any?, key2: kotlin.Any?, calculation: @[DisallowComposableCalls] kotlin.Function0<T of androidx.compose.runtime.ComposablesKt.remember>): T of androidx.compose.runtime.ComposablesKt.remember [inline] declared in androidx.compose.runtime.ComposablesKt' type=VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel origin=null
+        <T>: VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel
+        key1: GET_VAR 'val viewModelClass: kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> origin=null
+        key2: GET_VAR 'val viewModelContext: com.iur.arm.mvi.ViewModelContext [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=com.iur.arm.mvi.ViewModelContext origin=null
+        calculation: BLOCK type=kotlin.Function0<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun mavericksViewModel$lambda$2 <VM, S> ($viewModelClass: kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel$lambda$2>, $viewModelContext: com.iur.arm.mvi.ViewModelContext, $keyFactory: kotlin.Function0<kotlin.String>?): VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel$lambda$2 declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt' type=kotlin.Function0<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> origin=INLINE_LAMBDA reflectionTarget=null
+            <VM>: VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel
+            <S>: S of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel
+            $viewModelClass: GET_VAR 'val viewModelClass: kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.reflect.KClass<VM of com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel> origin=null
+            $viewModelContext: GET_VAR 'val viewModelContext: com.iur.arm.mvi.ViewModelContext [val] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=com.iur.arm.mvi.ViewModelContext origin=null
+            $keyFactory: GET_VAR 'keyFactory: kotlin.Function0<kotlin.String>? [noinline] declared in com.iur.arm.mvi.compose.MavericksComposeExtensionsKt.mavericksViewModel' type=kotlin.Function0<kotlin.String>? origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:40)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:412)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:423)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.FileCodegen.lower(JvmPhases.kt:39)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseFactoriesKt.createFilePhase$lambda$4(PhaseFactories.kt:71)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt$createSimpleNamedCompilerPhase$1.phaseBody(PhaseBuilders.kt:69)
+	at org.jetbrains.kotlin.backend.common.phaser.SimpleNamedCompilerPhase.phaseBody(CompilerPhase.kt:226)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:62)
+	... 43 more
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't inline method call: CALL 'public final fun <get-current> (): T of androidx.compose.runtime.CompositionLocal [inline] declared in androidx.compose.runtime.CompositionLocal' type=android.content.Context origin=GET_PROPERTY
+Method: null
+File is unknown
+The root cause java.lang.IllegalStateException was thrown at: org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:118)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.performInline(InlineCodegen.kt:65)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:163)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCallGenerator.genCall(IrInlineCallGenerator.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:653)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.gen(ExpressionCodegen.kt:217)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrCallGenerator.genValueAndPut(IrCallGenerator.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:616)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:644)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:790)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:584)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:240)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:123)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:44)
+	... 53 more
+Caused by: java.lang.IllegalStateException: couldn't find inline method Landroidx/compose/runtime/CompositionLocal;.getCurrent()Ljava/lang/Object;
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:118)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction(SourceCompilerForInline.kt:96)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.compileInlineFunction(IrSourceCompilerForInline.kt:91)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.compileInline(InlineCodegen.kt:43)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.performInline(InlineCodegen.kt:51)
+	... 74 more
+
+
