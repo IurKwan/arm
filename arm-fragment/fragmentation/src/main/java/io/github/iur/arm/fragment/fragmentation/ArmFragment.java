@@ -21,6 +21,14 @@ public class ArmFragment extends Fragment implements IArmFragment {
     final ArmFragmentDelegate mDelegate = new ArmFragmentDelegate(this);
     protected ArmActivity _mActivity;
 
+    public ArmFragment() {
+
+    }
+
+    public ArmFragment(int contentLayoutId) {
+        super(contentLayoutId);
+    }
+
     @Override
     public ArmFragmentDelegate getSupportDelegate() {
         return mDelegate;
