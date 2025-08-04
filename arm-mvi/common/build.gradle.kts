@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    `maven-publish`
 }
 
 android {
@@ -51,4 +52,51 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "io.github.iur"
+            artifactId = "arm-mvi-common"
+            version = project.findProperty("arm.mvi.version") as String
+
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            pom {
+                name.set("ARM MVI Common")
+                description.set("Common integration for ARM MVI library")
+                url.set("https://github.com/your-repo/arm")
+
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("developer")
+                        name.set("Iur")
+                        email.set("guanzhirui@outlook.com")
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "aliyun"
+            url =
+                uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+            credentials {
+                username = "REDACTED_ALIYUN_USERNAME"
+                password = "REDACTED_ALIYUN_PASSWORD"
+            }
+        }
+    }
 }
