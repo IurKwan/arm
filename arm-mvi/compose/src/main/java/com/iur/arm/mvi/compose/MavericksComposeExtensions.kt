@@ -20,6 +20,14 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.savedstate.SavedStateRegistryOwner
+import com.iur.arm.mvi.ActivityViewModelContext
+import com.iur.arm.mvi.FragmentViewModelContext
+import com.iur.arm.mvi.Mavericks
+import com.iur.arm.mvi.MavericksViewModel
+import com.iur.arm.mvi.MavericksViewModelProvider
+import com.iur.arm.mvi.common.InternalMavericksApi
+import com.iur.arm.mvi.common.MavericksState
+import com.iur.arm.mvi.withState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.CoroutineContext
@@ -56,33 +64,44 @@ inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mave
         "Composable is not hosted in a ComponentActivity!"
     }
 
-    val viewModelStoreOwner = scope as? ViewModelStoreOwner ?: error("LifecycleOwner must be a ViewModelStoreOwner!")
-    val savedStateRegistryOwner = scope as? SavedStateRegistryOwner ?: error("LifecycleOwner must be a SavedStateRegistryOwner!")
+    val viewModelStoreOwner =
+        scope as? ViewModelStoreOwner ?: error("LifecycleOwner must be a ViewModelStoreOwner!")
+    val savedStateRegistryOwner =
+        scope as? SavedStateRegistryOwner
+            ?: error("LifecycleOwner must be a SavedStateRegistryOwner!")
     val savedStateRegistry = savedStateRegistryOwner.savedStateRegistry
     val viewModelClass = VM::class
     val view = LocalView.current
 
-    val viewModelContext = remember(scope, activity, viewModelStoreOwner, savedStateRegistry) {
-        val parentFragment = when (scope) {
-            is Fragment -> scope
-            is ComponentActivity -> null
-            else -> findFragmentFromView(view)
-        }
+    val viewModelContext =
+        remember(scope, activity, viewModelStoreOwner, savedStateRegistry) {
+            val parentFragment =
+                when (scope) {
+                    is Fragment -> scope
+                    is ComponentActivity -> null
+                    else -> findFragmentFromView(view)
+                }
 
-        if (parentFragment != null) {
-            val args = argsFactory?.invoke() ?: parentFragment.arguments?.get(Mavericks.KEY_ARG)
-            FragmentViewModelContext(activity, args, parentFragment, viewModelStoreOwner, savedStateRegistry)
-        } else {
-            val args = argsFactory?.invoke() ?: activity.intent.extras?.get(Mavericks.KEY_ARG)
-            ActivityViewModelContext(activity, args, viewModelStoreOwner, savedStateRegistry)
+            if (parentFragment != null) {
+                val args = argsFactory?.invoke() ?: parentFragment.arguments?.get(Mavericks.KEY_ARG)
+                FragmentViewModelContext(
+                    activity,
+                    args,
+                    parentFragment,
+                    viewModelStoreOwner,
+                    savedStateRegistry,
+                )
+            } else {
+                val args = argsFactory?.invoke() ?: activity.intent.extras?.get(Mavericks.KEY_ARG)
+                ActivityViewModelContext(activity, args, viewModelStoreOwner, savedStateRegistry)
+            }
         }
-    }
     return remember(viewModelClass, viewModelContext) {
         MavericksViewModelProvider.get(
             viewModelClass = viewModelClass.java,
             stateClass = S::class.java,
             viewModelContext = viewModelContext,
-            key = keyFactory?.invoke() ?: viewModelClass.java.name
+            key = keyFactory?.invoke() ?: viewModelClass.java.name,
         )
     }
 }
@@ -104,12 +123,13 @@ fun extractActivityFromContext(context: Context): ComponentActivity? {
 }
 
 @InternalMavericksApi
-fun findFragmentFromView(view: View): Fragment? = try {
-    FragmentManager.findFragment(view)
-} catch (_: IllegalStateException) {
-    // current scope is NOT a fragment
-    null
-}
+fun findFragmentFromView(view: View): Fragment? =
+    try {
+        FragmentManager.findFragment(view)
+    } catch (_: IllegalStateException) {
+        // current scope is NOT a fragment
+        null
+    }
 
 /**
  * Get or create a [MavericksViewModel] scoped to the local activity.
@@ -127,7 +147,7 @@ inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mave
     return mavericksViewModel(
         scope = activity,
         keyFactory = keyFactory,
-        argsFactory = argsFactory
+        argsFactory = argsFactory,
     )
 }
 
@@ -137,10 +157,13 @@ inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mave
  */
 @Composable
 fun <VM : MavericksViewModel<S>, S : MavericksState> VM.collectAsState(
-    coroutineContext: CoroutineContext = EmptyCoroutineContext
-): State<S> {
-    return stateFlow.collectAsState(initial = withState(this) { it }, coroutineContext)
-}
+    coroutineContext: CoroutineContext = EmptyCoroutineContext,
+): State<S> =
+    stateFlow.collectAsState(
+        initial =
+            withState(this) { it },
+        coroutineContext,
+    )
 
 /**
  * Creates a Compose State variable that will emit new values whenever this ViewModel's state changes in a lifecycle-aware manner.
@@ -151,14 +174,13 @@ fun <VM : MavericksViewModel<S>, S : MavericksState> VM.collectAsStateWithLifecy
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     minActiveState: Lifecycle.State = Lifecycle.State.STARTED,
     coroutineContext: CoroutineContext = EmptyCoroutineContext,
-): State<S> {
-    return stateFlow.collectAsStateWithLifecycle(
+): State<S> =
+    stateFlow.collectAsStateWithLifecycle(
         initialValue = withState(this) { it },
         lifecycleOwner = lifecycleOwner,
         minActiveState = minActiveState,
-        context = coroutineContext
+        context = coroutineContext,
     )
-}
 
 /**
  * Creates a Compose State variable that will emit new values whenever this ViewModel's state mapped to the provided mapper changes.
@@ -173,11 +195,14 @@ fun <VM : MavericksViewModel<S>, S : MavericksState> VM.collectAsStateWithLifecy
 fun <VM : MavericksViewModel<S>, S : MavericksState, O> VM.collectAsState(
     key: Any? = Unit,
     coroutineContext: CoroutineContext = EmptyCoroutineContext,
-    mapper: (S) -> O
+    mapper: (S) -> O,
 ): State<O> {
     val updatedMapper by rememberUpdatedState(mapper)
     val mappedFlow = remember(key) { stateFlow.map { updatedMapper(it) }.distinctUntilChanged() }
-    return mappedFlow.collectAsState(initial = withState(this) { updatedMapper(it) }, coroutineContext)
+    return mappedFlow.collectAsState(
+        initial = withState(this) { updatedMapper(it) },
+        coroutineContext,
+    )
 }
 
 /**
@@ -195,7 +220,7 @@ fun <VM : MavericksViewModel<S>, S : MavericksState, O> VM.collectAsStateWithLif
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     minActiveState: Lifecycle.State = Lifecycle.State.STARTED,
     coroutineContext: CoroutineContext = EmptyCoroutineContext,
-    mapper: (S) -> O
+    mapper: (S) -> O,
 ): State<O> {
     val updatedMapper by rememberUpdatedState(mapper)
     val mappedFlow = remember(key) { stateFlow.map { updatedMapper(it) }.distinctUntilChanged() }
@@ -203,7 +228,7 @@ fun <VM : MavericksViewModel<S>, S : MavericksState, O> VM.collectAsStateWithLif
         initialValue = withState(this) { updatedMapper(it) },
         lifecycleOwner = lifecycleOwner,
         minActiveState = minActiveState,
-        context = coroutineContext
+        context = coroutineContext,
     )
 }
 
@@ -215,10 +240,13 @@ fun <VM : MavericksViewModel<S>, S : MavericksState, O> VM.collectAsStateWithLif
 @Composable
 fun <VM : MavericksViewModel<S>, S : MavericksState, A> VM.collectAsState(
     prop1: KProperty1<S, A>,
-    coroutineContext: CoroutineContext = EmptyCoroutineContext
+    coroutineContext: CoroutineContext = EmptyCoroutineContext,
 ): State<A> {
     val mappedFlow = remember(prop1) { stateFlow.map { prop1.get(it) }.distinctUntilChanged() }
-    return mappedFlow.collectAsState(initial = withState(this) { prop1.get(it) }, context = coroutineContext)
+    return mappedFlow.collectAsState(
+        initial = withState(this) { prop1.get(it) },
+        context = coroutineContext,
+    )
 }
 
 /**
@@ -238,6 +266,6 @@ fun <VM : MavericksViewModel<S>, S : MavericksState, A> VM.collectAsStateWithLif
         initialValue = withState(this) { prop1.get(it) },
         lifecycleOwner = lifecycleOwner,
         minActiveState = minActiveState,
-        context = coroutineContext
+        context = coroutineContext,
     )
 }

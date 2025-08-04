@@ -11,8 +11,16 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/arm-fragment" />
+            <option value="$PROJECT_DIR$/arm-fragment/core" />
+            <option value="$PROJECT_DIR$/arm-fragment/fragmentation" />
             <option value="$PROJECT_DIR$/arm-mvi" />
             <option value="$PROJECT_DIR$/arm-mvi/common" />
+            <option value="$PROJECT_DIR$/arm-mvi/compose" />
+            <option value="$PROJECT_DIR$/arm-mvi/hilt" />
+            <option value="$PROJECT_DIR$/arm-mvi/mvi" />
+            <option value="$PROJECT_DIR$/arm-mvi/navigation" />
+            <option value="$PROJECT_DIR$/arm-mvi/rxjava" />
           </set>
         </option>
       </GradleProjectSettings>
