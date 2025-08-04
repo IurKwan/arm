@@ -1,9 +1,11 @@
+import org.gradle.kotlin.dsl.implementation
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     `maven-publish`
 }
 
@@ -34,6 +36,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures {
+        compose = true
+    }
 }
 
 tasks.withType<KotlinCompile>().configureEach {
@@ -51,12 +56,17 @@ dependencies {
 //    api(project(":arm-mvi:mvi"))
     api(libs.arm.mvi.mvi)
 
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.compose.ui)
+    implementation(libs.lifecycle.common)
+    implementation(libs.fragment)
+    implementation(libs.appcompat)
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    // Compose BOM
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.ui)
+    implementation(libs.viewModel.compose)
+    implementation(libs.runtime.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -6,17 +6,18 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.9.2"
-lifecycleRuntimeCompose = "2.8.7"
+lifecycleRuntimeCompose = "2.9.2"
 activityCompose = "1.10.1"
-composeBom = "2024.09.00"
+composeBom = "2025.07.00"
 appcompat = "1.7.1"
 material = "1.12.0"
-composeUi = "1.2.1"
+composeUi = "1.8.3"
 hilt = "2.56"
 navigationUiKtx = "2.8.5"
 navigationFragmentKtx = "2.8.5"
 rxjava3 = "3.1.10"
 timber = "5.0.1"
+viewModelCompose = "2.9.2"
 armFragmentCore = "1.0.0"
 armMvi = "0.0.1"
 
@@ -47,6 +48,13 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 arm-fragment-core = { module = "io.github.iur:arm-fragment-core", version.ref = "armFragmentCore" }
 arm-mvi-common = { group = "io.github.iur", name = "arm-mvi-common", version.ref = "armMvi" }
 arm-mvi-mvi = { group = "io.github.iur", name = "arm-mvi-mvi", version.ref = "armMvi" }
+lifecycle-common = { group = "androidx.lifecycle", name = "lifecycle-common-java8", version.ref = "lifecycleRuntimeKtx" }
+fragment = { group = "androidx.fragment", name = "fragment", version = "1.8.5" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+viewModel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "viewModelCompose" }
+runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
