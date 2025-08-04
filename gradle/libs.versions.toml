@@ -55,10 +55,12 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 viewModel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "viewModelCompose" }
 runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
+hilt-compiler = "com.google.dagger:hilt-android-compiler:_"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 

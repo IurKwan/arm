@@ -3,6 +3,7 @@ import org.gradle.kotlin.dsl.implementation
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
     `maven-publish`
 }
 
@@ -39,7 +40,10 @@ dependencies {
 //    api(project(":arm-mvi:mvi"))
     api(libs.arm.mvi.mvi)
 
+    kapt(libs.hilt.compiler)
     implementation(libs.hilt)
+    implementation(libs.lifecycle.common)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
