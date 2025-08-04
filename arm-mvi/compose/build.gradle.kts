@@ -48,7 +48,8 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-    api(project(":arm-mvi:mvi"))
+//    api(project(":arm-mvi:mvi"))
+    api(libs.arm.mvi.mvi)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.ui)

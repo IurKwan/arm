@@ -36,7 +36,9 @@ android {
 }
 
 dependencies {
-    api(project(":arm-mvi:mvi"))
+//    api(project(":arm-mvi:mvi"))
+    api(libs.arm.mvi.mvi)
+
     implementation(libs.hilt)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

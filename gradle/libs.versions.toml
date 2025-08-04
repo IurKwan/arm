@@ -18,6 +18,7 @@ navigationFragmentKtx = "2.8.5"
 rxjava3 = "3.1.10"
 timber = "5.0.1"
 armFragmentCore = "1.0.0"
+armMvi = "0.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +45,8 @@ androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navi
 rxjava3 = { group = "io.reactivex.rxjava3", name = "rxjava", version.ref = "rxjava3" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 arm-fragment-core = { module = "io.github.iur:arm-fragment-core", version.ref = "armFragmentCore" }
+arm-mvi-common = { group = "io.github.iur", name = "arm-mvi-common", version.ref = "armMvi" }
+arm-mvi-mvi = { group = "io.github.iur", name = "arm-mvi-mvi", version.ref = "armMvi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

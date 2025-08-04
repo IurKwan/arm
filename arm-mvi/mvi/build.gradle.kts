@@ -49,7 +49,8 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-    api(project(":arm-mvi:common"))
+//    api(project(":arm-mvi:common"))
+    api(libs.arm.mvi.common)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

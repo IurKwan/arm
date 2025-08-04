@@ -46,7 +46,8 @@ android {
 }
 
 dependencies {
-    api(project(":arm-mvi:mvi"))
+//    api(project(":arm-mvi:mvi"))
+    api(libs.arm.mvi.mvi)
 
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
