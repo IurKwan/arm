@@ -45,7 +45,6 @@ import kotlin.reflect.KProperty1
 abstract class BaseMvRxViewModel<S : MavericksState>(
     initialState: S,
 ) : MavericksViewModel<S>(initialState) {
-    private val tag by lazy { javaClass.simpleName }
     private val disposables = CompositeDisposable()
 
     /**
