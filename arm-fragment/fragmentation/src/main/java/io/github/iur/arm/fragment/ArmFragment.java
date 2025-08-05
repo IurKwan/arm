@@ -1,4 +1,4 @@
-package io.github.iur.arm.fragment.fragmentation;
+package io.github.iur.arm.fragment;
 
 import android.app.Activity;
 import android.content.Intent;

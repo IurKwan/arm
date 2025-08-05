@@ -1,4 +1,4 @@
-package io.github.iur.arm.fragment.fragmentation;
+package io.github.iur.arm.fragment;
 
 import android.os.Bundle;
 import android.view.MotionEvent;

@@ -1,7 +1,6 @@
-package io.github.iur.arm.mvi.rxjava.rxjava
+package io.github.iur.arm.mvi.rxjava
 
 import io.github.iur.arm.mvi.common.MavericksState
-import io.github.iur.arm.mvi.rxjava.BaseMvRxViewModel
 
 abstract class ArmViewModel<S : MavericksState>(
     initialState: S,

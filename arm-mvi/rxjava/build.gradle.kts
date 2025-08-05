@@ -47,8 +47,7 @@ android {
 }
 
 dependencies {
-//    api(project(":arm-mvi:mvi"))
-    api(libs.arm.mvi.mvi)
+    api(project(":arm-mvi:mvi"))
 
     implementation(libs.rxjava3)
 
@@ -63,8 +62,8 @@ dependencies {
 android {
     publishing {
         singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
+//            withSourcesJar()
+//            withJavadocJar()
         }
     }
 }
