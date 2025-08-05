@@ -21,7 +21,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -48,8 +48,8 @@ dependencies {
 android {
     publishing {
         singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
+//            withSourcesJar()
+//            withJavadocJar()
         }
     }
 }
@@ -59,7 +59,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-fragment-core"
-            version = "1.0.0"
+            version = "0.0.1"
 
             afterEvaluate {
                 from(components["release"])
@@ -91,7 +91,8 @@ publishing {
     repositories {
         maven {
             name = "aliyun"
-            url = uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+            url =
+                uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
             credentials {
                 username = "REDACTED_ALIYUN_USERNAME"
                 password = "REDACTED_ALIYUN_PASSWORD"

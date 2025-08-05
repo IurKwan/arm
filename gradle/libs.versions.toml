@@ -18,7 +18,7 @@ navigationFragmentKtx = "2.8.5"
 rxjava3 = "3.1.10"
 timber = "5.0.1"
 viewModelCompose = "2.9.2"
-armFragmentCore = "1.0.0"
+armFragmentCore = "0.0.1"
 armMvi = "0.0.5"
 
 [libraries]
