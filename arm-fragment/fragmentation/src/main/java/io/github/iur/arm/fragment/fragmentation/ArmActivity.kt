@@ -17,6 +17,9 @@ open class ArmActivity :
     IArmActivity {
     private val mDelegate = ArmActivityDelegate(this)
 
+    val topFragment: IArmFragment?
+        get() = SupportHelper.getTopFragment(supportFragmentManager)
+
     override fun getSupportDelegate(): ArmActivityDelegate = mDelegate
 
     /**
@@ -249,11 +252,6 @@ open class ArmActivity :
     ) {
         mDelegate.setDefaultFragmentBackground(backgroundRes)
     }
-
-    /**
-     * 得到位于栈顶Fragment
-     */
-    fun getTopFragment(): IArmFragment? = SupportHelper.getTopFragment(supportFragmentManager)
 
     /**
      * 获取栈内的fragment对象
