@@ -47,8 +47,8 @@ dependencies {
 android {
     publishing {
         singleVariant("release") {
-//            withSourcesJar()
-//            withJavadocJar()
+            withSourcesJar()
+            withJavadocJar()
         }
     }
 }
@@ -58,7 +58,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-fragment-fragmentation"
-            version = "0.0.5"
+            version = "0.0.6"
 
             afterEvaluate {
                 from(components["release"])
