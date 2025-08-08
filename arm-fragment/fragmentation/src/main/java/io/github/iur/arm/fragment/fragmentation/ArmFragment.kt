@@ -17,6 +17,15 @@ open class ArmFragment :
     private val mDelegate = ArmFragmentDelegate(this)
     protected var _mActivity: ArmActivity? = null
 
+    val topFragment: IArmFragment?
+        get() = SupportHelper.getTopFragment(parentFragmentManager)
+
+    val topChildFragment: IArmFragment?
+        get() = SupportHelper.getTopFragment(childFragmentManager)
+
+    val preFragment: IArmFragment?
+        get() = SupportHelper.getPreFragment(this)
+
     constructor() : super()
 
     constructor(contentLayoutId: Int) : super(contentLayoutId)
@@ -423,21 +432,9 @@ open class ArmFragment :
     }
 
     /**
-     * 得到位于栈顶Fragment
-     */
-    fun getTopFragment(): IArmFragment? = SupportHelper.getTopFragment(fragmentManager)
-
-    fun getTopChildFragment(): IArmFragment? = SupportHelper.getTopFragment(childFragmentManager)
-
-    /**
-     * @return 位于当前Fragment的前一个Fragment
-     */
-    fun getPreFragment(): IArmFragment? = SupportHelper.getPreFragment(this)
-
-    /**
      * 获取栈内的fragment对象
      */
-    fun <T : IArmFragment> findFragment(fragmentClass: Class<T>): T? = SupportHelper.findFragment(fragmentManager, fragmentClass)
+    fun <T : IArmFragment> findFragment(fragmentClass: Class<T>): T? = SupportHelper.findFragment(parentFragmentManager, fragmentClass)
 
     /**
      * 获取栈内的fragment对象
