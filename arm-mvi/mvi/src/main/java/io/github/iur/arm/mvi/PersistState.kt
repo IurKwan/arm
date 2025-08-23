@@ -59,12 +59,15 @@ fun <T : MavericksState> persistMavericksState(
 
 private fun <T : MavericksState> Class<out T>.primaryConstructor(): Constructor<*>? {
     // Assumes that only the primary constructor has PersistState annotations.
-    // TODO - potentially throw if multiple constructors have PersistState as that is not supported.
-    return constructors.firstOrNull { constructor ->
+    // However, when a constructor has default values, a synthetic secondary constructor is generated.
+    // This synthetic constructor has two additional parameters - one for a bitmask to know which parameters to use a default value for,
+    // and a final parameter of DefaultConstructorMarker that is ignored and is used to avoid signature clashes.
+    // We want to ignore this synthetic constructor, which we can differentiate since it should have more parameters than the primary constructor.
+    return constructors.filter { constructor ->
         constructor.parameterAnnotations.any { paramAnnotations ->
             paramAnnotations.any { it is PersistState }
         }
-    }
+    }.minByOrNull { it.parameterTypes.size }
 }
 
 private fun <T : MavericksState> Class<out T>.getComponentNFunction(componentIndex: Int): Method {
