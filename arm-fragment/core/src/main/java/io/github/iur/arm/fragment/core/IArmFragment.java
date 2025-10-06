@@ -16,10 +16,6 @@ public interface IArmFragment {
     int SINGLETOP = 1;
     int SINGLETASK = 2;
 
-    // ResultCode
-    int RESULT_CANCELED = 0;
-    int RESULT_OK = -1;
-
     @IntDef({STANDARD, SINGLETOP, SINGLETASK})
     @Retention(RetentionPolicy.SOURCE)
     public @interface LaunchMode {

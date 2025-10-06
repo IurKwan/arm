@@ -158,6 +158,53 @@ inline fun <T, reified VM : MavericksViewModel<S>, reified S : MavericksState> T
     }
 
 /**
+ * Gets or creates a ViewModel scoped to a target fragment. Throws [IllegalStateException] if there is no target fragment.
+ */
+inline fun <T, reified VM : MavericksViewModel<S>, reified S : MavericksState> T.preFragmentViewModel(
+    viewModelClass: KClass<VM> = VM::class,
+    crossinline keyFactory: () -> String = { viewModelClass.java.name },
+): MavericksDelegateProvider<T, VM> where T : Fragment, T : MavericksView =
+    viewModelDelegateProvider(
+        viewModelClass,
+        keyFactory,
+        existingViewModel = true,
+    ) { stateFactory ->
+        // 'existingViewModel' is set to true. Although this function works in both cases of
+        // either existing or new viewmodel it would be more difficult to support both cases,
+        // so we just test the common case of "existing". We can't be sure that the fragment
+        // was designed for it to be used in the non-existing case (ie it may require arguments)
+
+        fun getPreFragment(fragment: Fragment): Fragment? {
+            val fragmentManager = fragment.getParentFragmentManager()
+
+            val fragmentList: MutableList<Fragment> = fragmentManager.fragments
+
+            val index = fragmentList.indexOf(fragment)
+            for (i in index - 1 downTo 0) {
+                return fragmentList[i]
+            }
+            return null
+        }
+
+        @Suppress("DEPRECATION")
+        val preFragment =
+            requireNotNull(getPreFragment(this)) { "There is no pre fragment for ${this::class.java.name}!" }
+
+        MavericksViewModelProvider.get(
+            viewModelClass = viewModelClass.java,
+            stateClass = S::class.java,
+            viewModelContext =
+                FragmentViewModelContext(
+                    activity = requireActivity(),
+                    args = preFragment._fragmentArgsProvider(),
+                    fragment = preFragment,
+                ),
+            key = keyFactory(),
+            initialStateFactory = stateFactory,
+        )
+    }
+
+/**
  * [activityViewModel] except it will throw [IllegalStateException] if the ViewModel doesn't already exist.
  * Use this for screens in the middle of a flow that cannot reasonably be an entry point to the flow.
  */
@@ -332,3 +379,20 @@ fun <T : Any> List<T>.appendAt(
     other: List<T>?,
     offset: Int,
 ) = subList(0, offset.coerceIn(0, size)) + (other ?: emptyList())
+
+/**
+ * 获取目标Fragment的前一个Fragment
+ *
+ * @param fragment 目标Fragment
+ */
+private fun getPreFragment(fragment: Fragment): Fragment? {
+    val fragmentManager = fragment.getParentFragmentManager()
+
+    val fragmentList: MutableList<Fragment> = fragmentManager.fragments
+
+    val index = fragmentList.indexOf(fragment)
+    for (i in index - 1 downTo 0) {
+        return fragmentList[i]
+    }
+    return null
+}
