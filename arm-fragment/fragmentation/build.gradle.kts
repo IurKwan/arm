@@ -59,7 +59,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-fragment-fragmentation"
-            version = "0.0.9"
+            version = "1.0.0"
 
             afterEvaluate {
                 from(components["release"])
