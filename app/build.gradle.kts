@@ -40,7 +40,11 @@ android {
 }
 
 dependencies {
-    api(project(":arm-mvi:rxjava"))
+    implementation(project(":arm-fragment:fragmentation"))
+    implementation(project(":arm-fragment:core"))
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
+    implementation(libs.androidx.appcompat)
+    implementation(libs.fragment)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -64,7 +64,7 @@ public class VisibleDelegate {
     }
 
     private void initVisible() {
-        if (!mInvisibleWhenLeave && !mFragment.isHidden() && mFragment.getUserVisibleHint()) {
+        if (!mInvisibleWhenLeave && !mFragment.isHidden() && mFragment.isResumed()) {
             if (mFragment.getParentFragment() == null || isFragmentVisible(mFragment.getParentFragment())) {
                 mNeedDispatch = false;
                 safeDispatchUserVisibleHint(true);
@@ -79,10 +79,8 @@ public class VisibleDelegate {
                 dispatchSupportVisible(true);
             }
         } else {
-            if (mAbortInitVisible) {
-                mAbortInitVisible = false;
-                initVisible();
-            }
+            mAbortInitVisible = false;
+            initVisible();
         }
     }
 
@@ -93,7 +91,7 @@ public class VisibleDelegate {
             return;
         }
 
-        if (mIsSupportVisible && isFragmentVisible(mFragment)) {
+        if (mIsSupportVisible) {
             mNeedDispatch = false;
             mInvisibleWhenLeave = false;
             dispatchSupportVisible(false);
@@ -126,12 +124,12 @@ public class VisibleDelegate {
 
     private void dispatchChildOnFragmentShownWhenNotResumed() {
         FragmentManager fragmentManager = mFragment.getChildFragmentManager();
-        List<Fragment> childFragments = FragmentationMagician.getActiveFragments(fragmentManager);
-        for (Fragment child : childFragments) {
-            if (child instanceof IArmFragment && !child.isHidden() && child.getUserVisibleHint()) {
-                ((IArmFragment) child).getSupportDelegate().getVisibleDelegate().onFragmentShownWhenNotResumed();
+            List<Fragment> childFragments = FragmentationMagician.getActiveFragments(fragmentManager);
+            for (Fragment child : childFragments) {
+                if (child instanceof IArmFragment && !child.isHidden()) {
+                    ((IArmFragment) child).getSupportDelegate().getVisibleDelegate().onFragmentShownWhenNotResumed();
+                }
             }
-        }
     }
 
     public void onDestroyView() {
@@ -206,7 +204,7 @@ public class VisibleDelegate {
             FragmentManager fragmentManager = mFragment.getChildFragmentManager();
             List<Fragment> childFragments = FragmentationMagician.getActiveFragments(fragmentManager);
             for (Fragment child : childFragments) {
-                if (child instanceof IArmFragment && !child.isHidden() && child.getUserVisibleHint()) {
+                if (child instanceof IArmFragment && !child.isHidden() && child.isResumed()) {
                     ((IArmFragment) child).getSupportDelegate().getVisibleDelegate().dispatchSupportVisible(visible);
                 }
             }
@@ -232,7 +230,7 @@ public class VisibleDelegate {
     }
 
     private boolean isFragmentVisible(Fragment fragment) {
-        return !fragment.isHidden() && fragment.getUserVisibleHint();
+        return !fragment.isHidden() && fragment.isResumed();
     }
 
     public boolean isSupportVisible() {
