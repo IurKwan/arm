@@ -34,7 +34,8 @@ android {
 }
 
 dependencies {
-    api(libs.arm.fragment.core)
+//    api(libs.arm.fragment.core)
+    implementation(project(":arm-fragment:core"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
