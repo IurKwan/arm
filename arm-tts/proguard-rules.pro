@@ -100,9 +100,6 @@
 # 5.2 TTS 仓库
 -keep class com.qq.wx.offlinevoice.synthesizer.TtsRepository { *; }
 
-# 5.3 网络监控
--keep class com.qq.wx.offlinevoice.synthesizer.NetworkMonitor { *; }
-
 # 5.4 策略管理
 -keep class com.qq.wx.offlinevoice.synthesizer.SynthesisStrategyManager { *; }
 
@@ -110,17 +107,8 @@
 -keep interface com.qq.wx.offlinevoice.synthesizer.cache.TtsCache { *; }
 -keep class com.qq.wx.offlinevoice.synthesizer.cache.TtsCacheImpl { *; }
 
-# 5.6 在线 TTS 模块
--keep interface com.qq.wx.offlinevoice.synthesizer.online.OnlineTtsApi { *; }
--keep interface com.qq.wx.offlinevoice.synthesizer.online.Mp3Decoder { *; }
--keep class com.qq.wx.offlinevoice.synthesizer.online.WxReaderApi { *; }
--keep class com.qq.wx.offlinevoice.synthesizer.online.MediaCodecMp3Decoder { *; }
-
 # 5.7 Token 管理
 -keep class com.qq.wx.offlinevoice.synthesizer.online.token.** { *; }
-
-# 5.8 预加载模块
--keep class com.qq.wx.offlinevoice.synthesizer.preload.PreloadJob { *; }
 
 # 5.9 工具类
 -keep class com.qq.wx.offlinevoice.synthesizer.PathUtils { *; }
@@ -214,5 +202,4 @@
 # -----------------------------------------------------------------------------
 
 # 保留自定义异常类
--keep class com.qq.wx.offlinevoice.synthesizer.online.WxApiException { *; }
 -keep class com.qq.wx.offlinevoice.synthesizer.ForbiddenNetworkException { *; }

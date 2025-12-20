@@ -1,14 +1,12 @@
 package com.qq.wx.offlinevoice.synthesizer
 
-import android.util.Log
-
 /**
  * 使用我们项目内的 Sonic.java 类对 PCM 音频流进行变速处理。
  * 这个类不是线程安全的，需要外部同步。
  */
 class AudioSpeedProcessor(
     val sampleRate: Int,
-    private val numChannels: Int = 1
+    private val numChannels: Int = 1,
 ) {
     private var sonic: Sonic? = null
     private var currentSpeed: Float = 1.0f
@@ -62,7 +60,7 @@ class AudioSpeedProcessor(
 
         // flush 会处理内部所有剩余的输入，并将其放入输出缓冲区
         currentSonic.flushStream()
-        
+
         val availableSamples = currentSonic.samplesAvailable()
         if (availableSamples <= 0) {
             return ShortArray(0)

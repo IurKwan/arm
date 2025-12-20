@@ -6,9 +6,9 @@ import androidx.collection.LruCache
 import com.qq.wx.offlinevoice.synthesizer.AppLogger
 import com.qq.wx.offlinevoice.synthesizer.clearDirectoryFunctional
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -44,13 +44,15 @@ import kotlin.math.min
  * - 原子写：写入 {md5}.tmp，成功后 renameTo 为 {md5}；异常时删除 .tmp。
  * - 损坏修复：读出错即删除该文件，避免反复失败。
  */
-class TtsCacheImpl(private val context: Context) : TtsCache {
-
+class TtsCacheImpl(
+    private val context: Context,
+) : TtsCache {
     // -------------------- 配置 --------------------
 
     // 内存缓存最大字节数（默认取 min(16MB, maxMemory/16)）
     private val maxMemoryCacheBytes: Int by lazy {
-        val maxFromRuntime = (Runtime.getRuntime().maxMemory() / 16L).coerceAtMost(16L * 1024 * 1024).toInt()
+        val maxFromRuntime =
+            (Runtime.getRuntime().maxMemory() / 16L).coerceAtMost(16L * 1024 * 1024).toInt()
         maxFromRuntime.coerceAtLeast(2 * 1024 * 1024) // 至少 2MB
     }
 
@@ -80,9 +82,13 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
     // -------------------- 内存缓存（MP3 字节） --------------------
 
     // 简单 LRU（按字节计费）
-    private val memoryCache = object : LruCache<String, ByteArray>(maxMemoryCacheBytes) {
-        override fun sizeOf(key: String, value: ByteArray): Int = value.size
-    }
+    private val memoryCache =
+        object : LruCache<String, ByteArray>(maxMemoryCacheBytes) {
+            override fun sizeOf(
+                key: String,
+                value: ByteArray,
+            ): Int = value.size
+        }
 
     // -------------------- 磁盘缓存目录与并发互斥 --------------------
 
@@ -118,9 +124,10 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
                     return@withLock null
                 }
                 try {
-                    val bytes = withTimeout(3000) {
-                        BufferedInputStream(file.inputStream()).use { it.readBytes() }
-                    }
+                    val bytes =
+                        withTimeout(3000) {
+                            BufferedInputStream(file.inputStream()).use { it.readBytes() }
+                        }
                     // 放入内存缓存以备下次快速访问
                     memoryCache.put(key, bytes)
                     AppLogger.d("TtsCache", "缓存命中 (磁盘): $key")
@@ -136,18 +143,25 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
         }
     }
 
-    override suspend fun put(key: String, data: ByteArray) {
+    override suspend fun put(
+        key: String,
+        data: ByteArray,
+    ) {
         // 1) 先写入内存
         memoryCache.put(key, data)
 
         // 2) 再写入磁盘（受限于容量/低存储/单文件大小/TTL 清理等策略）
-        val cacheDir = getAndEnsureDiskCacheDir() ?: run {
-            AppLogger.w("TtsCache", "磁盘缓存目录不可用，跳过写入磁盘缓存: $key")
-            return
-        }
+        val cacheDir =
+            getAndEnsureDiskCacheDir() ?: run {
+                AppLogger.w("TtsCache", "磁盘缓存目录不可用，跳过写入磁盘缓存: $key")
+                return
+            }
         val size = data.size.toLong()
         if (size > maxEntryBytes) {
-            AppLogger.w("TtsCache", "条目过大，跳过磁盘写入: key=$key, approx=${size}B, max=$maxEntryBytes")
+            AppLogger.w(
+                "TtsCache",
+                "条目过大，跳过磁盘写入: key=$key, approx=${size}B, max=$maxEntryBytes",
+            )
             return
         }
 
@@ -156,11 +170,17 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
                 // 低存储保护
                 val free = cacheDir.usableSpace
                 if (free < lowSpaceFreeBytesThreshold) {
-                    AppLogger.w("TtsCache", "可用空间过低(usable=${free}B < $lowSpaceFreeBytesThreshold)，触发紧急清理。")
+                    AppLogger.w(
+                        "TtsCache",
+                        "可用空间过低(usable=${free}B < $lowSpaceFreeBytesThreshold)，触发紧急清理。",
+                    )
                     scanAndTrimDirectoryIfNeeded(cacheDir, incomingBytes = size, aggressive = true)
                     val freeAfter = cacheDir.usableSpace
                     if (freeAfter < lowSpaceFreeBytesThreshold) {
-                        AppLogger.w("TtsCache", "紧急清理后可用空间仍不足(usable=${freeAfter}B)，跳过写入: $key")
+                        AppLogger.w(
+                            "TtsCache",
+                            "紧急清理后可用空间仍不足(usable=${freeAfter}B)，跳过写入: $key",
+                        )
                         return@withLock
                     }
                 }
@@ -183,12 +203,13 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
                     return@withLock
                 }
 
-                val renamed = if (finalFile.exists()) {
-                    val deleted = runCatching { finalFile.delete() }.getOrDefault(false)
-                    if (!deleted) tmpFile.renameTo(finalFile) else tmpFile.renameTo(finalFile)
-                } else {
-                    tmpFile.renameTo(finalFile)
-                }
+                val renamed =
+                    if (finalFile.exists()) {
+                        val deleted = runCatching { finalFile.delete() }.getOrDefault(false)
+                        if (!deleted) tmpFile.renameTo(finalFile) else tmpFile.renameTo(finalFile)
+                    } else {
+                        tmpFile.renameTo(finalFile)
+                    }
 
                 if (!renamed) {
                     try {
@@ -220,7 +241,12 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
             diskCacheDir.clearDirectoryFunctional()
             AppLogger.d("TtsCache", "缓存已清空, 内存项: $memorySize, 磁盘项: $diskFiles")
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "缓存已清空, 内存项: $memorySize, 磁盘项: $diskFiles", Toast.LENGTH_SHORT).show()
+                Toast
+                    .makeText(
+                        context,
+                        "缓存已清空, 内存项: $memorySize, 磁盘项: $diskFiles",
+                        Toast.LENGTH_SHORT,
+                    ).show()
             }
         }.onFailure {
             AppLogger.e("TtsCache", "清空缓存失败", it)
@@ -229,10 +255,11 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
 
     // -------------------- 辅助方法 --------------------
 
-    private fun String.toMd5(): String {
-        return MessageDigest.getInstance("MD5").digest(this.toByteArray())
+    private fun String.toMd5(): String =
+        MessageDigest
+            .getInstance("MD5")
+            .digest(this.toByteArray())
             .joinToString("") { "%02x".format(it) }
-    }
 
     private fun getAndEnsureDiskCacheDir(): File? {
         val cacheDir = diskCacheDir
@@ -245,7 +272,10 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
         return cacheDir
     }
 
-    private fun isExpired(file: File, now: Long = System.currentTimeMillis()): Boolean {
+    private fun isExpired(
+        file: File,
+        now: Long = System.currentTimeMillis(),
+    ): Boolean {
         val age = now - (runCatching { file.lastModified() }.getOrDefault(0L))
         return age > maxAgeMillis
     }
@@ -260,10 +290,15 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
     private fun scanAndTrimDirectoryIfNeeded(
         dir: File,
         incomingBytes: Long,
-        aggressive: Boolean
+        aggressive: Boolean,
     ) {
         if (!dir.exists()) return
-        val files = dir.listFiles()?.toList().orEmpty().filter { it.isFile && !it.name.endsWith(".tmp") }
+        val files =
+            dir
+                .listFiles()
+                ?.toList()
+                .orEmpty()
+                .filter { it.isFile && !it.name.endsWith(".tmp") }
         if (files.isEmpty()) return
 
         // 1) TTL 清理
@@ -280,7 +315,12 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
         }
 
         // 2) 重新统计
-        val aliveFiles = dir.listFiles()?.toList().orEmpty().filter { it.isFile && !it.name.endsWith(".tmp") }
+        val aliveFiles =
+            dir
+                .listFiles()
+                ?.toList()
+                .orEmpty()
+                .filter { it.isFile && !it.name.endsWith(".tmp") }
         var fileCount = aliveFiles.size
         totalBytes = aliveFiles.sumOf { it.length() }
 
@@ -310,8 +350,8 @@ class TtsCacheImpl(private val context: Context) : TtsCache {
                 AppLogger.i(
                     "TtsCache",
                     "LRU 清理完成：删除 $deletedCount 个文件，释放 ${deletedBytes}B，" +
-                            "当前占用=${totalBytes}B/${maxDiskBytes}B，文件数=$fileCount/$maxFileCount，" +
-                            "incoming=$incomingBytes，模式=${if (aggressive) "aggressive" else "normal"}"
+                        "当前占用=${totalBytes}B/${maxDiskBytes}B，文件数=$fileCount/$maxFileCount，" +
+                        "incoming=$incomingBytes，模式=${if (aggressive) "aggressive" else "normal"}",
                 )
             }
         }

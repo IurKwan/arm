@@ -4,7 +4,6 @@ package com.qq.wx.offlinevoice.synthesizer
  * 文本清理工具类（适用于 TTS、小说朗读、字幕分句等场景）
  */
 object WrTextUtil {
-
     /** 要过滤的标点和特殊字符 */
     private const val FILTER_CHARS =
         "·`,，.。!！?？：:；;（(）)¥「」＂、[【】]{}#%-*+=_\\\\／|~＜《＞》$€^•’@#%^&*_+’\"‘’”“—…"
@@ -50,7 +49,10 @@ object WrTextUtil {
      *
      * @return Pair(索引数组, 分段字符串数组)
      */
-    fun splitWithIndices(input: String, regex: String): Pair<IntArray, Array<String>> {
+    fun splitWithIndices(
+        input: String,
+        regex: String,
+    ): Pair<IntArray, Array<String>> {
         val pattern = Regex(regex)
         val indices = mutableListOf<Int>()
         val segments = mutableListOf<String>()

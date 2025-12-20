@@ -21,6 +21,7 @@
             <option value="$PROJECT_DIR$/arm-mvi/mvi" />
             <option value="$PROJECT_DIR$/arm-mvi/navigation" />
             <option value="$PROJECT_DIR$/arm-mvi/rxjava" />
+            <option value="$PROJECT_DIR$/arm-tts" />
           </set>
         </option>
       </GradleProjectSettings>

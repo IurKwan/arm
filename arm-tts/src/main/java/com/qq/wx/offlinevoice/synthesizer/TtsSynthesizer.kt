@@ -3,9 +3,6 @@ package com.qq.wx.offlinevoice.synthesizer
 import android.content.Context
 import android.content.SharedPreferences
 import android.widget.Toast
-import com.qq.wx.offlinevoice.synthesizer.online.MediaCodecMp3Decoder
-import com.qq.wx.offlinevoice.synthesizer.online.WxApiException
-import com.qq.wx.offlinevoice.synthesizer.online.WxReaderApi
 import java.nio.ShortBuffer
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
@@ -29,10 +26,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import androidx.core.content.edit
 import com.qq.wx.offlinevoice.synthesizer.cache.TtsCache
-import com.qq.wx.offlinevoice.synthesizer.normalizer.SimplifiedTtsNormalizer
 import com.qq.wx.offlinevoice.synthesizer.normalizer.TraditionalTtsNormalizer
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -149,7 +143,6 @@ class TtsSynthesizer(
 
     private val strategyManager: SynthesisStrategyManager
     private val ttsRepository: TtsRepository
-    private val networkMonitor: NetworkMonitor = NetworkMonitor(context.applicationContext)
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -232,7 +225,6 @@ class TtsSynthesizer(
 
         private const val BASE_COOLDOWN_MS = 3000L
         private const val MAX_COOLDOWN_MS = 60000L
-        private const val NETWORK_STABILIZE_MS = 600L
         // 字符进度轮询周期（毫秒）
         private const val CHAR_PROGRESS_INTERVAL_MS = 50L
 
@@ -285,8 +277,6 @@ class TtsSynthesizer(
         private const val PUNC_EXTRA_SMALL = 0.70f
         private const val PUNC_EXTRA_BIG = 1.02f
 
-        // —— 新增：弱网下的“当前句在线超时”与 loading 防抖 —— //
-        private const val CURRENT_SENTENCE_ONLINE_TIMEOUT_MS = 10000L
         private const val LOADING_DEBOUNCE_MS = 250L
 
         init {
@@ -307,11 +297,9 @@ class TtsSynthesizer(
     init {
         voiceDataPath = PathUtils.getTtsResourcePath(context)
 
-        strategyManager = SynthesisStrategyManager(networkMonitor)
-        val onlineApi = WxReaderApi(context)
-        val mp3Decoder = MediaCodecMp3Decoder(context.applicationContext)
+        strategyManager = SynthesisStrategyManager()
         val ttsCache = TtsCache.getInstance(context)
-        ttsRepository = TtsRepository(onlineApi, mp3Decoder, ttsCache, networkMonitor)
+        ttsRepository = TtsRepository(ttsCache)
 
         appScope.launch { commandProcessor() }
         if (instanceCount.incrementAndGet() == 1) {
@@ -320,8 +308,8 @@ class TtsSynthesizer(
                 nativeEngine?.init(voiceDataPath.toByteArray())
             }.onFailure {
                 AppLogger.e(TAG, "TtsSynthesizer 初始化本地引擎失败: ${it.message}", it, important = true)
-                // 初始化失败时释放本地引擎，策略强制回 ONLINE_ONLY
-                strategyManager.setStrategy(TtsStrategy.ONLINE_ONLY)
+                // 初始化失败时释放本地引擎，策略强制回 OFFLINE_ONLY
+                strategyManager.setStrategy(TtsStrategy.OFFLINE_ONLY)
                 instanceCount.decrementAndGet()
                 nativeEngine = null
                 if (linkedLibError != null) {
@@ -356,10 +344,6 @@ class TtsSynthesizer(
      * 新增：对外 seek API（按句跳转）
      */
     fun seekToSentence(index: Int) = sendCommand(Command.SeekTo(index)) // index 按“逻辑行”语义
-
-    fun setToken(token: String, uid: Long) {
-        ttsRepository.onlineApi.setToken(token, uid)
-    }
 
     fun isSpeaking(): Boolean = isPlaying.value
     fun getStatus(): TtsStatus {
@@ -790,7 +774,6 @@ class TtsSynthesizer(
         handleStop()
         commandChannel.close()
         strategyManager.release()
-        networkMonitor.release()
         nativeEngineLock.withLock {
             if (instanceCount.get() >= 1) {
                 instanceCount.decrementAndGet()
@@ -949,47 +932,6 @@ class TtsSynthesizer(
                 synthesisLoopJob = launchSynthesisLoop()
             }
 
-            if (strategyManager.currentStrategy == TtsStrategy.ONLINE_PREFERRED) {
-                launch {
-                    var wasNetworkBad = !strategyManager.isNetworkGood.value
-                    strategyManager.isNetworkGood.collect { isNetworkGood ->
-                        if (wasNetworkBad && isNetworkGood) {
-                            delay(NETWORK_STABILIZE_MS)
-                            if (!strategyManager.isNetworkGood.value) {
-                                AppLogger.i(TAG, "网络恢复检测在稳定窗口后失效，取消本次升级触发。")
-                                wasNetworkBad = !strategyManager.isNetworkGood.value
-                                return@collect
-                            }
-                            if (!isSessionActive()) return@collect
-                            if (upgradeWindowActive) {
-                                AppLogger.i(TAG, "升级窗口仍在进行，忽略重复触发。")
-                                wasNetworkBad = !strategyManager.isNetworkGood.value
-                                return@collect
-                            }
-                            resetOnlineCooldown()
-                            AppLogger.i(TAG, "网络已恢复且通过稳定窗口。执行升级：软重启合成循环并进入升级窗口（保护期）。")
-
-                            synthesisLoopJob?.cancelAndJoin()
-
-                            val protectedIndex = playingSentenceIndex // 物理段索引
-                            audioPlayer.resetQueueOnlyBlocking(preserveSentenceIndex = protectedIndex)
-
-                            upgradeWindowActive = true
-                            upgradeProtectedIndex = protectedIndex
-
-                            synthesisSentenceIndex = protectedIndex + 1
-                            if (synthesisSentenceIndex < sentences.size) {
-                                AppLogger.i(TAG, "将从句子 $synthesisSentenceIndex 处重新开始在线合成（升级窗口生效中）。")
-                                runSynthesisLoop()
-                            } else {
-                                AppLogger.i(TAG, "所有句子均已播放或正在播放，无需重启合成。")
-                            }
-                        }
-                        wasNetworkBad = !isNetworkGood
-                    }
-                }
-            }
-
             runSynthesisLoop()
         }
     }
@@ -1003,48 +945,6 @@ class TtsSynthesizer(
                 val sessionStrategy = strategyManager.currentStrategy
 
                 val finalResult = when (sessionStrategy) {
-                    TtsStrategy.ONLINE_PREFERRED, TtsStrategy.ONLINE_ONLY -> {
-                        val onlineResult = performOnlineSynthesis(index, bag)
-                        if (onlineResult is SynthesisResult.Success) {
-                            resetOnlineCooldown(); onlineResult
-                        } else {
-                            if (onlineResult !is SynthesisResult.Skip) {
-                                val isAlreadyCoolingDown = System.currentTimeMillis() < onlineCooldownUntilTimestamp
-                                if (!isAlreadyCoolingDown) {
-                                    // 只有在非冷却期内的失败，才激活新的冷却
-                                    activateOnlineCooldown()
-                                } else {
-                                    // 如果已经在冷却期内，可以打个日志，但不再增加惩罚
-                                    AppLogger.d(TAG, "在冷却期内再次在线合成失败，忽略惩罚累加。")
-                                }
-                            }
-                            if (sessionStrategy == TtsStrategy.ONLINE_PREFERRED) {
-                                AppLogger.w(TAG, "在线路径失败(缓存未命中/无PCM或API错误)，回退至[离线模式]。原因: ${(onlineResult as? SynthesisResult.Failure)?.reason ?: "unknown"}")
-                                val reason = when (onlineResult) {
-                                    is SynthesisResult.Failure -> onlineResult.reason
-                                    is SynthesisResult.Skip -> onlineResult.reason
-                                    else -> "未知原因"
-                                }
-                                performOfflineSynthesis(index, bag, callReason = reason)
-                            } else {
-                                AppLogger.e(TAG, "纯在线模式合成失败，无可用回退。原因: ${(onlineResult as? SynthesisResult.Failure)?.reason ?: "unknown"}")
-                                // 如果是不是跳过类型的失败，则在当前句报错提示
-                                if (onlineResult !is SynthesisResult.Skip) {
-                                    // 如果是当前句子，则报错
-                                    if (synthesisSentenceIndex == index) {
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(
-                                                context,
-                                                "Network error, please check your network.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                                onlineResult
-                            }
-                        }
-                    }
                     else -> performOfflineSynthesis(index, bag, "离线模式")
                 }
 
@@ -1108,174 +1008,6 @@ class TtsSynthesizer(
             } else {
                 AppLogger.i(TAG, "合成循环结束（会话已取消或协程不活跃），跳过 flush/EOS。")
             }
-        }
-    }
-
-    private suspend fun performOnlineSynthesis(index: Int, bag: TtsBag): SynthesisResult {
-        val sentence = bag.text
-        val trimmed = processTextForTts(sentence)
-        try {
-            if (!coroutineContext.isActive || !isSessionActive()) return SynthesisResult.Deferred
-            if (trimmed.isOnlyPunctuationOrEmpty()) {
-                AppLogger.w(
-                    TAG,
-                    msg = """
-                        ┌ ----------------------------
-                        | 合成[在线]句子无效内容，跳过合成
-                        | bag: $bag, 
-                        | 实际文本: "$trimmed"
-                        └ ----------------------------
-                        """.trimIndent(),
-                    important = true
-                )
-                enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_START, SynthesisMode.ONLINE) {
-                    if (isSessionActive()) sendCommand(Command.InternalSentenceStart(index, sentence, SynthesisMode.ONLINE, bag.start, bag.end))
-                }
-                enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_END, SynthesisMode.ONLINE) {
-                    if (isSessionActive()) sendCommand(Command.InternalSentenceEnd(index, sentence))
-                }
-                return SynthesisResult.Success
-            }
-            AppLogger.d(
-                TAG,
-                """
-                    ┌ ----------------------------
-                    | 合成[在线]句子开始
-                    | bag: $bag, 
-                    | 实际文本: "$trimmed"
-                    └ ----------------------------
-                """.trimIndent(),
-                important = true
-            )
-            val start = System.currentTimeMillis()
-
-            val isCoolingDown = System.currentTimeMillis() < onlineCooldownUntilTimestamp
-            AppLogger.d(TAG, "当前在线合成冷却状态: $isCoolingDown 剩余时间: ${(onlineCooldownUntilTimestamp - System.currentTimeMillis()).coerceAtLeast(0)} ms")
-
-            val strategy = strategyManager.currentStrategy
-            val lineId = bag.originalGroupId
-            val shouldBuffer = (strategy == TtsStrategy.ONLINE_PREFERRED || strategy == TtsStrategy.ONLINE_ONLY) &&
-                    (lineId == segmentToLine.getOrNull(playingSentenceIndex) || index == playingSentenceIndex /*&& bag.partInGroup == 0 || lineId == (segmentToLine.getOrNull(playingSentenceIndex) ?: 0) + 1*/)
-
-            if (shouldBuffer) {
-                scheduleBufferingIfNeeded(index)
-            }
-
-            val decoded = if (shouldBuffer) {
-                withTimeout(CURRENT_SENTENCE_ONLINE_TIMEOUT_MS) {
-                    ttsRepository.getDecodedPcm(trimmed, currentSpeaker, allowNetwork = !isCoolingDown)
-                }
-            } else {
-                ttsRepository.getDecodedPcm(trimmed, currentSpeaker, allowNetwork = !isCoolingDown)
-            }
-
-            if (!coroutineContext.isActive || !isSessionActive()) return SynthesisResult.Deferred
-
-            val pcmData = decoded.pcmData
-            val sampleRate = decoded.sampleRate
-            if (pcmData.isEmpty()) {
-                val reason = """
-                    ┌ ----------------------------
-                    | 合成[在线]句子得到空PCM
-                    | bag: $bag,
-                    | 实际文本: "$trimmed"
-                    └ ----------------------------
-                """.trimIndent()
-                AppLogger.w(TAG, reason, important = true)
-                return SynthesisResult.Failure(reason)
-            }
-
-            val duration = System.currentTimeMillis() - start
-            val msg = """
-                ┌ ----------------------------
-                | 合成[在线]句子完成
-                | bag: $bag,
-                | 实际文本: "$trimmed"
-                | PCM 大小: ${pcmData.size},
-                | 采样率: $sampleRate,
-                | 耗时: $duration ms
-                └ ----------------------------
-            """.trimIndent()
-            AppLogger.d(TAG, msg, important = true)
-
-            enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_START, SynthesisMode.ONLINE) {
-                if (isSessionActive()) sendCommand(Command.InternalSentenceStart(index, sentence, SynthesisMode.ONLINE, startPos = bag.start, endPos = bag.end))
-            }
-
-            processorMutex.withLock {
-                if (onlineAudioProcessor == null || onlineAudioProcessor?.sampleRate != sampleRate) {
-                    onlineAudioProcessor?.release()
-                    onlineAudioProcessor = AudioSpeedProcessor(sampleRate)
-                    onlineAudioProcessor?.setSpeed(currentSpeed)
-                    AppLogger.i(TAG, "Online audio sample rate is $sampleRate, created new AudioSpeedProcessor.")
-                } else {
-                    onlineAudioProcessor?.setSpeed(currentSpeed)
-                }
-
-                val speedAdjustedPcm = if (currentSpeed != 1.0f) {
-                    onlineAudioProcessor?.process(pcmData) ?: pcmData
-                } else {
-                    pcmData
-                }
-                if (speedAdjustedPcm.isNotEmpty()) {
-                    actualSamplesPerSentence[index] = (actualSamplesPerSentence[index] ?: 0L) + speedAdjustedPcm.size
-                    enqueuePcmGuarded(
-                        pcm = speedAdjustedPcm,
-                        sampleRate = sampleRate,
-                        source = SynthesisMode.ONLINE,
-                        sentenceIndex = index
-                    )
-                    endBufferingIfNeeded(index)
-                }
-            }
-
-            enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_END, SynthesisMode.ONLINE) {
-                if (isSessionActive()) sendCommand(Command.InternalSentenceEnd(index, sentence))
-            }
-            return SynthesisResult.Success
-        } catch (e: WxApiException) {
-            val code = e.errorCode
-            val reason = """
-                ┌ ----------------------------
-                | 合成[在线]句子失败
-                | bag: $bag,
-                | 实际文本: "$trimmed"
-                | 错误码: $code
-                | 错误信息: ${e.message}
-                └ ----------------------------
-            """.trimIndent()
-            AppLogger.e(TAG, reason, important = true)
-            currentCallback?.onSynthesisError(
-                mode = SynthesisMode.ONLINE,
-                errorCode = code,
-                sentence = trimmed,
-                errorMessage = e.message
-            )
-            clearBufferingOnProgress(index)
-            if (code == 1111 || code == 1110) {
-                return SynthesisResult.Skip("在线合成请求被拒绝（跳过）: $reason")
-            }
-            return SynthesisResult.Failure(reason)
-        } catch (e: Exception) {
-            val reason = """
-                ┌ ----------------------------
-                | 合成[在线]句子失败
-                | bag: $bag,
-                | 实际文本: "$trimmed"
-                | 异常信息: ${e.message}
-                └ ----------------------------
-            """.trimIndent()
-            if (e !is ForbiddenNetworkException && e !is CancellationException) {
-                currentCallback?.onSynthesisError(
-                    mode = SynthesisMode.ONLINE,
-                    errorCode = -1,
-                    errorMessage = e.message,
-                    sentence = trimmed
-                )
-            }
-            clearBufferingOnProgress(index)
-            AppLogger.e(TAG, reason, important = true)
-            return SynthesisResult.Failure(reason)
         }
     }
 

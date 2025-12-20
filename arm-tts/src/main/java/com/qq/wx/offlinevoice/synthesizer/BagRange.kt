@@ -7,5 +7,5 @@ data class BagRange(
     val start: Int,
     val end: Int,
     val type: Int,
-    val flag: Boolean
+    val flag: Boolean,
 )

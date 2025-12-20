@@ -380,7 +380,7 @@ internal object AppLogger {
 
 data class AppLoggerConfig(
     val enableConsole: Boolean = true,
-    val enableFile: Boolean = true,
+    val enableFile: Boolean = false,
     val minLevel: Level = Level.DEBUG,
     val logDir: File? = null, // 默认 context.filesDir/logs
     val tagPrefix: String = "TTSLib",

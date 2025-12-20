@@ -7,9 +7,9 @@ import java.util.ArrayDeque
  * 用于将长文本分割成单独的句子，并能智能处理对话、引文、嵌入式引述和不规范的格式。
  */
 object SentenceSplitter1 {
-
     // 常见的中英文句子分隔符的正则表达式
     private val SENTENCE_DELIMITERS_REGEX = Regex("[。！？.!?；;]+")
+
     // 将分隔符转换为字符集合，便于单字符查找
     private val SENTENCE_DELIMITER_CHARS = setOf('。', '！', '？', '.', '!', '?', '；', ';')
 
@@ -18,9 +18,15 @@ object SentenceSplitter1 {
 
     // 定义成对的标点
     private val OPENING_PUNCTUATION = setOf('“', '‘', '(', '（', '《', '『')
-    private val CLOSING_PUNCTUATION_MAP = mapOf(
-        '”' to '“', '’' to '‘', ')' to '(', '）' to '（', '》' to '《', '』' to '『'
-    )
+    private val CLOSING_PUNCTUATION_MAP =
+        mapOf(
+            '”' to '“',
+            '’' to '‘',
+            ')' to '(',
+            '）' to '（',
+            '》' to '《',
+            '』' to '『',
+        )
 
     /**
      * 根据常见分隔符将文本分割成句子，并丢弃分隔符。
@@ -28,12 +34,12 @@ object SentenceSplitter1 {
      */
     fun splitIntoSentences(text: String): List<String> {
         if (text.isBlank()) return emptyList()
-        return text.split(SENTENCE_DELIMITERS_REGEX)
+        return text
+            .split(SENTENCE_DELIMITERS_REGEX)
             .map { it.trim() }
             .filter { it.length >= MIN_SENTENCE_LENGTH }
             .toList()
     }
-
 
     /**
      * [最终重写方法]
@@ -63,7 +69,10 @@ object SentenceSplitter1 {
 
             // 1. 处理标点栈
             when (char) {
-                in OPENING_PUNCTUATION -> punctuationStack.addLast(char)
+                in OPENING_PUNCTUATION -> {
+                    punctuationStack.addLast(char)
+                }
+
                 in CLOSING_PUNCTUATION_MAP.keys -> {
                     if (punctuationStack.isNotEmpty() && punctuationStack.last() == CLOSING_PUNCTUATION_MAP[char]) {
                         punctuationStack.removeLast()
@@ -123,7 +132,10 @@ object SentenceSplitter1 {
      * @param currentIndex 当前检查点的索引
      * @return 如果是句子结束点，返回 true；否则返回 false。
      */
-    private fun isSentenceBreakAfter(text: String, currentIndex: Int): Boolean {
+    private fun isSentenceBreakAfter(
+        text: String,
+        currentIndex: Int,
+    ): Boolean {
         var nextIndex = currentIndex + 1
 
         // 跳过所有后续的空白字符
@@ -147,7 +159,7 @@ object SentenceSplitter1 {
         // 那么当前闭合标点很可能结束了一个独立的对话句。
         // 反之，如果是一个普通文字（如“这”），则说明是嵌入式引述，不应分割。
         return nextChar in SENTENCE_DELIMITER_CHARS ||
-                nextChar in OPENING_PUNCTUATION ||
-                nextChar in CLOSING_PUNCTUATION_MAP.keys
+            nextChar in OPENING_PUNCTUATION ||
+            nextChar in CLOSING_PUNCTUATION_MAP.keys
     }
 }

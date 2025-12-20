@@ -4,7 +4,6 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Process
-import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -33,11 +32,13 @@ import kotlin.math.min
  */
 class AudioPlayer(
     private val initialSampleRate: Int = TtsConstants.DEFAULT_SAMPLE_RATE,
-    private val queueCapacity: Int = 256
+    private val queueCapacity: Int = 256,
 ) {
     enum class MarkerType { SENTENCE_START, SENTENCE_END }
 
-    private sealed class QueueItem(open val gen: Long) {
+    private sealed class QueueItem(
+        open val gen: Long,
+    ) {
         data class Pcm(
             override val gen: Long,
             val data: ShortArray,
@@ -45,7 +46,7 @@ class AudioPlayer(
             val length: Int = data.size,
             val sampleRate: Int,
             val source: SynthesisMode,
-            val sentenceIndex: Int
+            val sentenceIndex: Int,
         ) : QueueItem(gen) {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -81,35 +82,55 @@ class AudioPlayer(
             val sentenceIndex: Int,
             val type: MarkerType,
             val source: SynthesisMode,
-            val onReached: (() -> Unit)? = null
+            val onReached: (() -> Unit)? = null,
         ) : QueueItem(gen)
 
-        data class EndOfStream(override val gen: Long, val onDrained: () -> Unit) : QueueItem(gen)
+        data class EndOfStream(
+            override val gen: Long,
+            val onDrained: () -> Unit,
+        ) : QueueItem(gen)
     }
 
     private enum class ResetType { HARD, SOFT_QUEUE_ONLY }
+
     private data class Control(
         val type: ResetType,
         val ack: CompletableDeferred<Unit>? = null,
-        val preserveSentenceIndex: Int = -1
+        val preserveSentenceIndex: Int = -1,
     )
 
     private val scope = CoroutineScope(Dispatchers.Default + Job())
     private var pcmChannel: Channel<QueueItem> = Channel(queueCapacity)
     private var controlChannel: Channel<Control> = Channel(Channel.CONFLATED)
 
-    @Volatile private var audioTrack: AudioTrack? = null
+    @Volatile
+    private var audioTrack: AudioTrack? = null
     private var playbackJob: Job? = null
-    @Volatile private var isPaused = false
-    @Volatile private var isStopped = true
-    @Volatile private var currentVolume: Float = 1.0f
-    @Volatile private var currentSampleRate: Int = initialSampleRate
-    @Volatile private var currentPlaybackSource: SynthesisMode? = null
-    @Volatile private var generation: Long = 0L
+
+    @Volatile
+    private var isPaused = false
+
+    @Volatile
+    private var isStopped = true
+
+    @Volatile
+    private var currentVolume: Float = 1.0f
+
+    @Volatile
+    private var currentSampleRate: Int = initialSampleRate
+
+    @Volatile
+    private var currentPlaybackSource: SynthesisMode? = null
+
+    @Volatile
+    private var generation: Long = 0L
 
     // 保护期状态：软重置(保留句)后开启；只允许该句的离线数据播放
-    @Volatile private var protectionActive: Boolean = false
-    @Volatile private var protectedSentenceIndex: Int = -1
+    @Volatile
+    private var protectionActive: Boolean = false
+
+    @Volatile
+    private var protectedSentenceIndex: Int = -1
 
     /**
      * 保护期内到达的“在线数据”句子分桶缓冲：
@@ -122,7 +143,7 @@ class AudioPlayer(
         val items: MutableList<QueueItem> = mutableListOf(),
         var hasPcm: Boolean = false,
         var hasStart: Boolean = false,
-        var hasEnd: Boolean = false
+        var hasEnd: Boolean = false,
     )
 
     // 使用 Map 按句子聚合；回吐时按句序处理，避免乱序推进
@@ -137,10 +158,10 @@ class AudioPlayer(
         private const val END_LAG_OK_MS = 40L
 
         // 分母动态平滑（上抬/回落）的步长与门限
-        private const val UP_GROWTH_MS = 120L      // 分母上抬的每次最大增长等效毫秒
-        private const val DOWN_SHRINK_MS = 120L    // 分母回落的每次最大减少等效毫秒
-        private const val SHRINK_TRIGGER = 0.90f   // accepted / dynamicPred < 该阈值，认为预测偏大
-        private const val SHRINK_START_FRAC = 0.55f// 超过该播放比例后才允许回落，避免前半段被放慢
+        private const val UP_GROWTH_MS = 120L // 分母上抬的每次最大增长等效毫秒
+        private const val DOWN_SHRINK_MS = 120L // 分母回落的每次最大减少等效毫秒
+        private const val SHRINK_TRIGGER = 0.90f // accepted / dynamicPred < 该阈值，认为预测偏大
+        private const val SHRINK_START_FRAC = 0.55f // 超过该播放比例后才允许回落，避免前半段被放慢
     }
 
     // ---------- 新增：句内进度（samples 级）统计与查询 ----------
@@ -148,16 +169,19 @@ class AudioPlayer(
         val sentenceIndex: Int,
         val playedSamples: Long,
         val totalSamples: Long,
-        val fraction: Float // 0..1（若 total=0 则为 0）
+        val fraction: Float, // 0..1（若 total=0 则为 0）
     )
 
-    @Volatile private var currentSentenceForProgress: Int = -1
+    @Volatile
+    private var currentSentenceForProgress: Int = -1
 
     // 自 AudioTrack 创建以来，累计“成功写入”的样本数（short 数），单声道即帧数
-    @Volatile private var globalWrittenSamples: Long = 0L
+    @Volatile
+    private var globalWrittenSamples: Long = 0L
 
     // 当前句“开始”时的全局已写入样本锚点（用于消除上一句缓冲尾巴的影响）
-    @Volatile private var sentenceStartWrittenSamples: Long = 0L
+    @Volatile
+    private var sentenceStartWrittenSamples: Long = 0L
 
     // 记录“已接纳用于播放”的 PCM 样本总数（按句聚合，单位：samples/shorts）
     private val sentenceTotalSamples = mutableMapOf<Int, Long>()
@@ -166,12 +190,18 @@ class AudioPlayer(
     private val predictedTotalPerSentence = mutableMapOf<Int, Long>()
 
     // 单句单调包络与句末放行
-    @Volatile private var lastSentenceForProgress: Int = -1
-    @Volatile private var lastFractionForSentence: Float = 0f
-    @Volatile private var endMarkerReachedForSentence: Boolean = false
+    @Volatile
+    private var lastSentenceForProgress: Int = -1
+
+    @Volatile
+    private var lastFractionForSentence: Float = 0f
+
+    @Volatile
+    private var endMarkerReachedForSentence: Boolean = false
 
     // 新增：当前句“动态预测分母”（在 getCurrentSentenceProgress 内做平滑上抬/回落）
-    @Volatile private var dynamicPredictedForSentence: Long = 0L
+    @Volatile
+    private var dynamicPredictedForSentence: Long = 0L
 
     /**
      * 查询当前句的播放进度（samples 级）。
@@ -183,11 +213,17 @@ class AudioPlayer(
         val at = audioTrack ?: return null
         val idx = currentSentenceForProgress
         if (idx < 0) return null
-        val head = try { at.playbackHeadPosition.toLong() } catch (_: Exception) { return null }
+        val head =
+            try {
+                at.playbackHeadPosition.toLong()
+            } catch (_: Exception) {
+                return null
+            }
         val played = (head - sentenceStartWrittenSamples).coerceAtLeast(0)
 
         val accepted = synchronized(sentenceTotalSamples) { sentenceTotalSamples[idx] ?: 0L }
-        val predictedRaw = synchronized(predictedTotalPerSentence) { predictedTotalPerSentence[idx] ?: 0L }
+        val predictedRaw =
+            synchronized(predictedTotalPerSentence) { predictedTotalPerSentence[idx] ?: 0L }
 
         val sr = currentSampleRate.coerceAtLeast(1)
         val denomFloor = (sr * DENOM_FLOOR_MS / 1000).toLong().coerceAtLeast(1L)
@@ -201,7 +237,11 @@ class AudioPlayer(
 
         // 以当前动态分母估算一个临时分母与比例（用于判定是否允许回落）
         val denomForFrac = max(max(dynamicPredictedForSentence, accepted), 1L)
-        val fracEst = (if (denomForFrac > 0) played.toFloat() / denomForFrac.toFloat() else 0f).coerceIn(0f, 1f)
+        val fracEst =
+            (if (denomForFrac > 0) played.toFloat() / denomForFrac.toFloat() else 0f).coerceIn(
+                0f,
+                1f,
+            )
 
         // 平滑上抬：目标上界 = max(预测, 已接纳)
         val targetUp = max(predictedRaw, accepted)
@@ -260,7 +300,8 @@ class AudioPlayer(
         protectionActive = false
         protectedSentenceIndex = -1
         deferredOnline.clear()
-        pcmChannel.close(); controlChannel.close()
+        pcmChannel.close()
+        controlChannel.close()
         pcmChannel = Channel(queueCapacity)
         controlChannel = Channel(Channel.CONFLATED)
         // 重置进度统计
@@ -277,186 +318,249 @@ class AudioPlayer(
         playbackJob = playbackCoroutine()
     }
 
-    private fun playbackCoroutine() = scope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
-        runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO) }
-        audioTrack = null
-        try {
-            while (isActive && !isStopped) {
-
-                // 1) 优先非阻塞消费控制命令
-                controlChannel.tryReceive().getOrNull()?.let { control ->
-                    processControlCommand(control)
-                    continue
-                }
-
-                // 2) 暂停态：不消费 PCM，仅轮询控制命令，防止 reset/软重置 ack 卡住
-                if (isPaused) {
-                    val ctrl = controlChannel.tryReceive().getOrNull()
-                    if (ctrl != null) {
-                        processControlCommand(ctrl)
-                    } else {
-                        AppLogger.v(TAG, "暂停中：仅处理控制命令，PCM 暂不消费。")
-                        delay(10)
+    private fun playbackCoroutine() =
+        scope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+            runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO) }
+            audioTrack = null
+            try {
+                while (isActive && !isStopped) {
+                    // 1) 优先非阻塞消费控制命令
+                    controlChannel.tryReceive().getOrNull()?.let { control ->
+                        processControlCommand(control)
+                        continue
                     }
-                    continue
-                }
 
-                // 3) 正常消费：select 监听控制与 PCM/Marker
-                select<Unit> {
-                    controlChannel.onReceiveCatching { result ->
-                        result.getOrNull()?.let { control ->  processControlCommand(control) }
-                    }
-                    pcmChannel.onReceiveCatching { result ->
-                        val item = result.getOrNull() ?: return@onReceiveCatching
-                        if (item.gen != generation) {
-                            AppLogger.v(TAG, "丢弃旧代次(${item.gen})的数据，当前代次为 $generation")
-                            return@onReceiveCatching
+                    // 2) 暂停态：不消费 PCM，仅轮询控制命令，防止 reset/软重置 ack 卡住
+                    if (isPaused) {
+                        val ctrl = controlChannel.tryReceive().getOrNull()
+                        if (ctrl != null) {
+                            processControlCommand(ctrl)
+                        } else {
+                            AppLogger.v(TAG, "暂停中：仅处理控制命令，PCM 暂不消费。")
+                            delay(10)
                         }
-                        if (!isActive || isStopped || item.gen != generation) return@onReceiveCatching
+                        continue
+                    }
 
-                        when (item) {
-                            is QueueItem.Pcm -> {
-                                // 保护期：仅允许受保护句的离线 PCM；在线 PCM 句内暂存（句序回吐）
-                                if (protectionActive && item.sentenceIndex != protectedSentenceIndex) {
-                                    if (item.source == SynthesisMode.OFFLINE) {
-                                        AppLogger.i(TAG, "保护期丢弃离线PCM：句子#${item.sentenceIndex} (受保护句为#${protectedSentenceIndex})")
-                                        return@onReceiveCatching
-                                    } else {
-                                        val bucket = deferredOnline.getOrPut(item.sentenceIndex) { DeferredBucket(item.sentenceIndex) }
-                                        bucket.items.add(item)
-                                        bucket.hasPcm = true
-                                        AppLogger.i(TAG, "保护期暂存在线PCM：句子#${item.sentenceIndex}，bucket(hasPcm=${bucket.hasPcm}) size=${bucket.items.size}")
-                                        return@onReceiveCatching
-                                    }
-                                }
-
-                                // 播放允许的数据
-                                if (audioTrack == null || item.sampleRate != currentSampleRate) {
-                                    switchSampleRate(item.sampleRate)
-                                }
-                                if (currentPlaybackSource != item.source || audioTrack?.sampleRate != item.sampleRate) {
-                                    currentPlaybackSource = item.source
-                                    AppLogger.i(TAG, ">>> 开始播放 [${item.source}] (采样率: ${item.sampleRate} Hz, 句子: ${item.sentenceIndex}) <<<")
-                                }
-
-                                // 累计该句的“已接纳样本数”（作为 totalSamples）
-                                synchronized(sentenceTotalSamples) {
-                                    val prev = sentenceTotalSamples[item.sentenceIndex] ?: 0L
-                                    sentenceTotalSamples[item.sentenceIndex] = prev + item.length.toLong()
-                                }
-
-                                audioTrack?.play()
-                                writePcmInChunks(item)
+                    // 3) 正常消费：select 监听控制与 PCM/Marker
+                    select<Unit> {
+                        controlChannel.onReceiveCatching { result ->
+                            result.getOrNull()?.let { control -> processControlCommand(control) }
+                        }
+                        pcmChannel.onReceiveCatching { result ->
+                            val item = result.getOrNull() ?: return@onReceiveCatching
+                            if (item.gen != generation) {
+                                AppLogger.v(
+                                    TAG,
+                                    "丢弃旧代次(${item.gen})的数据，当前代次为 $generation",
+                                )
+                                return@onReceiveCatching
                             }
-                            is QueueItem.Marker -> {
-                                // 保护期：仅触发受保护句的离线 Marker；在线 Marker 句内暂存
-                                if (protectionActive && item.sentenceIndex != protectedSentenceIndex) {
-                                    if (item.source == SynthesisMode.OFFLINE) {
-                                        AppLogger.i(TAG, "保护期丢弃离线Marker：句子#${item.sentenceIndex} type=${item.type}")
-                                        return@onReceiveCatching
-                                    } else {
-                                        val bucket = deferredOnline.getOrPut(item.sentenceIndex) { DeferredBucket(item.sentenceIndex) }
-                                        bucket.items.add(item)
-                                        if (item.type == MarkerType.SENTENCE_START) bucket.hasStart = true
-                                        if (item.type == MarkerType.SENTENCE_END) bucket.hasEnd = true
-                                        AppLogger.i(TAG, "保护期暂存在线Marker：句子#${item.sentenceIndex} type=${item.type}，bucket(hasPcm=${bucket.hasPcm}, start=${bucket.hasStart}, end=${bucket.hasEnd})")
-                                        return@onReceiveCatching
-                                    }
-                                }
+                            if (!isActive || isStopped || item.gen != generation) return@onReceiveCatching
 
-                                if (item.gen == generation) {
-                                    try { withContext(Dispatchers.Default) { item.onReached?.invoke() } }
-                                    catch (t: Throwable) { AppLogger.w(TAG, "执行 Marker 回调时出错", t) }
-                                }
-
-                                // 句首 Marker：仅保证该句 totalSamples 初始化；进度锚点改为“第一块 PCM 写入”时设置
-                                if (item.type == MarkerType.SENTENCE_START) {
-                                    synchronized(sentenceTotalSamples) {
-                                        if (sentenceTotalSamples[item.sentenceIndex] == null) {
-                                            sentenceTotalSamples[item.sentenceIndex] = 0L
+                            when (item) {
+                                is QueueItem.Pcm -> {
+                                    // 保护期：仅允许受保护句的离线 PCM；在线 PCM 句内暂存（句序回吐）
+                                    if (protectionActive && item.sentenceIndex != protectedSentenceIndex) {
+                                        if (item.source == SynthesisMode.OFFLINE) {
+                                            AppLogger.i(
+                                                TAG,
+                                                "保护期丢弃离线PCM：句子#${item.sentenceIndex} (受保护句为#$protectedSentenceIndex)",
+                                            )
+                                            return@onReceiveCatching
+                                        } else {
+                                            val bucket =
+                                                deferredOnline.getOrPut(item.sentenceIndex) {
+                                                    DeferredBucket(item.sentenceIndex)
+                                                }
+                                            bucket.items.add(item)
+                                            bucket.hasPcm = true
+                                            AppLogger.i(
+                                                TAG,
+                                                "保护期暂存在线PCM：句子#${item.sentenceIndex}，bucket(hasPcm=${bucket.hasPcm}) size=${bucket.items.size}",
+                                            )
+                                            return@onReceiveCatching
                                         }
                                     }
+
+                                    // 播放允许的数据
+                                    if (audioTrack == null || item.sampleRate != currentSampleRate) {
+                                        switchSampleRate(item.sampleRate)
+                                    }
+                                    if (currentPlaybackSource != item.source || audioTrack?.sampleRate != item.sampleRate) {
+                                        currentPlaybackSource = item.source
+                                        AppLogger.i(
+                                            TAG,
+                                            ">>> 开始播放 [${item.source}] (采样率: ${item.sampleRate} Hz, 句子: ${item.sentenceIndex}) <<<",
+                                        )
+                                    }
+
+                                    // 累计该句的“已接纳样本数”（作为 totalSamples）
+                                    synchronized(sentenceTotalSamples) {
+                                        val prev = sentenceTotalSamples[item.sentenceIndex] ?: 0L
+                                        sentenceTotalSamples[item.sentenceIndex] =
+                                            prev + item.length.toLong()
+                                    }
+
+                                    audioTrack?.play()
+                                    writePcmInChunks(item)
                                 }
 
-                                // 受保护句 END：等待缓冲排空 -> 结束保护期 -> 按句序吐回仅含 PCM 的句子
-                                if (protectionActive && item.sentenceIndex == protectedSentenceIndex && item.type == MarkerType.SENTENCE_END) {
-                                    AppLogger.i(TAG, "受保护句 #${item.sentenceIndex} 的 END 已到达，等待缓冲排空后结束保护期并按句序吐回在线暂存。")
-                                    launch {
-                                        waitForPlaybackToFinish()
-                                        protectionActive = false
-                                        protectedSentenceIndex = -1
-                                        val toFlushBuckets = deferredOnline.size
-                                        if (toFlushBuckets > 0) {
-                                            AppLogger.i(TAG, "开始吐回 ${toFlushBuckets} 个句子的在线暂存（仅含PCM的句子回吐，按句序）")
-                                            val indices = deferredOnline.keys.sorted()
-                                            for (si in indices) {
-                                                val b = deferredOnline[si] ?: continue
-                                                if (!b.hasPcm) {
-                                                    AppLogger.w(TAG, "句子#$si 在线暂存仅包含 Marker，无 PCM，丢弃以避免空推进。")
-                                                    continue
+                                is QueueItem.Marker -> {
+                                    // 保护期：仅触发受保护句的离线 Marker；在线 Marker 句内暂存
+                                    if (protectionActive && item.sentenceIndex != protectedSentenceIndex) {
+                                        if (item.source == SynthesisMode.OFFLINE) {
+                                            AppLogger.i(
+                                                TAG,
+                                                "保护期丢弃离线Marker：句子#${item.sentenceIndex} type=${item.type}",
+                                            )
+                                            return@onReceiveCatching
+                                        } else {
+                                            val bucket =
+                                                deferredOnline.getOrPut(item.sentenceIndex) {
+                                                    DeferredBucket(item.sentenceIndex)
                                                 }
-                                                val startMarker = b.items.firstOrNull { it is QueueItem.Marker && it.type == MarkerType.SENTENCE_START } as? QueueItem.Marker
-                                                val endMarker = b.items.lastOrNull { it is QueueItem.Marker && it.type == MarkerType.SENTENCE_END } as? QueueItem.Marker
-                                                val pcms = b.items.filterIsInstance<QueueItem.Pcm>()
+                                            bucket.items.add(item)
+                                            if (item.type == MarkerType.SENTENCE_START) {
+                                                bucket.hasStart =
+                                                    true
+                                            }
+                                            if (item.type == MarkerType.SENTENCE_END) {
+                                                bucket.hasEnd =
+                                                    true
+                                            }
+                                            AppLogger.i(
+                                                TAG,
+                                                "保护期暂存在线Marker：句子#${item.sentenceIndex} type=${item.type}，bucket(hasPcm=${bucket.hasPcm}, start=${bucket.hasStart}, end=${bucket.hasEnd})",
+                                            )
+                                            return@onReceiveCatching
+                                        }
+                                    }
 
-                                                startMarker?.let {
-                                                    AppLogger.i(TAG, "回吐句子#$si：发送 START")
-                                                    pcmChannel.send(it.copy(gen = generation))
-                                                } ?: AppLogger.w(TAG, "回吐句子#$si：缺少 START Marker。")
+                                    if (item.gen == generation) {
+                                        try {
+                                            withContext(Dispatchers.Default) { item.onReached?.invoke() }
+                                        } catch (t: Throwable) {
+                                            AppLogger.w(TAG, "执行 Marker 回调时出错", t)
+                                        }
+                                    }
 
-                                                for (p in pcms) {
-                                                    AppLogger.i(TAG, "回吐句子#$si：发送 PCM 长度=${p.length}")
-                                                    pcmChannel.send(p.copy(gen = generation))
-                                                }
-
-                                                endMarker?.let {
-                                                    AppLogger.i(TAG, "回吐句子#$si：发送 END")
-                                                    pcmChannel.send(it.copy(gen = generation))
-                                                } ?: AppLogger.w(TAG, "回吐句子#$si：缺少 END Marker。")
+                                    // 句首 Marker：仅保证该句 totalSamples 初始化；进度锚点改为“第一块 PCM 写入”时设置
+                                    if (item.type == MarkerType.SENTENCE_START) {
+                                        synchronized(sentenceTotalSamples) {
+                                            if (sentenceTotalSamples[item.sentenceIndex] == null) {
+                                                sentenceTotalSamples[item.sentenceIndex] = 0L
                                             }
                                         }
-                                        deferredOnline.clear()
-                                        AppLogger.i(TAG, "保护期关闭。")
+                                    }
+
+                                    // 受保护句 END：等待缓冲排空 -> 结束保护期 -> 按句序吐回仅含 PCM 的句子
+                                    if (protectionActive && item.sentenceIndex == protectedSentenceIndex &&
+                                        item.type == MarkerType.SENTENCE_END
+                                    ) {
+                                        AppLogger.i(
+                                            TAG,
+                                            "受保护句 #${item.sentenceIndex} 的 END 已到达，等待缓冲排空后结束保护期并按句序吐回在线暂存。",
+                                        )
+                                        launch {
+                                            waitForPlaybackToFinish()
+                                            protectionActive = false
+                                            protectedSentenceIndex = -1
+                                            val toFlushBuckets = deferredOnline.size
+                                            if (toFlushBuckets > 0) {
+                                                AppLogger.i(
+                                                    TAG,
+                                                    "开始吐回 $toFlushBuckets 个句子的在线暂存（仅含PCM的句子回吐，按句序）",
+                                                )
+                                                val indices = deferredOnline.keys.sorted()
+                                                for (si in indices) {
+                                                    val b = deferredOnline[si] ?: continue
+                                                    if (!b.hasPcm) {
+                                                        AppLogger.w(
+                                                            TAG,
+                                                            "句子#$si 在线暂存仅包含 Marker，无 PCM，丢弃以避免空推进。",
+                                                        )
+                                                        continue
+                                                    }
+                                                    val startMarker =
+                                                        b.items.firstOrNull {
+                                                            it is QueueItem.Marker && it.type == MarkerType.SENTENCE_START
+                                                        } as? QueueItem.Marker
+                                                    val endMarker =
+                                                        b.items.lastOrNull {
+                                                            it is QueueItem.Marker && it.type == MarkerType.SENTENCE_END
+                                                        } as? QueueItem.Marker
+                                                    val pcms =
+                                                        b.items.filterIsInstance<QueueItem.Pcm>()
+
+                                                    startMarker?.let {
+                                                        AppLogger.i(TAG, "回吐句子#$si：发送 START")
+                                                        pcmChannel.send(it.copy(gen = generation))
+                                                    } ?: AppLogger.w(
+                                                        TAG,
+                                                        "回吐句子#$si：缺少 START Marker。",
+                                                    )
+
+                                                    for (p in pcms) {
+                                                        AppLogger.i(
+                                                            TAG,
+                                                            "回吐句子#$si：发送 PCM 长度=${p.length}",
+                                                        )
+                                                        pcmChannel.send(p.copy(gen = generation))
+                                                    }
+
+                                                    endMarker?.let {
+                                                        AppLogger.i(TAG, "回吐句子#$si：发送 END")
+                                                        pcmChannel.send(it.copy(gen = generation))
+                                                    } ?: AppLogger.w(
+                                                        TAG,
+                                                        "回吐句子#$si：缺少 END Marker。",
+                                                    )
+                                                }
+                                            }
+                                            deferredOnline.clear()
+                                            AppLogger.i(TAG, "保护期关闭。")
+                                        }
+                                    }
+
+                                    // 记录当前句 END 到达（用于允许 fraction 最终达到 1）
+                                    if (item.type == MarkerType.SENTENCE_END && item.sentenceIndex == currentSentenceForProgress) {
+                                        endMarkerReachedForSentence = true
                                     }
                                 }
 
-                                // 记录当前句 END 到达（用于允许 fraction 最终达到 1）
-                                if (item.type == MarkerType.SENTENCE_END && item.sentenceIndex == currentSentenceForProgress) {
-                                    endMarkerReachedForSentence = true
-                                }
-                            }
-                            is QueueItem.EndOfStream -> {
-                                AppLogger.i(TAG, "收到流结束(EOS)，等待缓冲播放完毕后回调...")
-                                launch {
-                                    waitForPlaybackToFinish()
-                                    if (item.gen == generation && !isStopped) {
-                                        AppLogger.i(TAG, "缓冲已播放完毕。执行EOS回调。")
-                                        item.onDrained()
+                                is QueueItem.EndOfStream -> {
+                                    AppLogger.i(TAG, "收到流结束(EOS)，等待缓冲播放完毕后回调...")
+                                    launch {
+                                        waitForPlaybackToFinish()
+                                        if (item.gen == generation && !isStopped) {
+                                            AppLogger.i(TAG, "缓冲已播放完毕。执行EOS回调。")
+                                            item.onDrained()
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            } finally {
+                releaseAudioTrack()
+                isStopped = true
+                protectionActive = false
+                protectedSentenceIndex = -1
+                deferredOnline.clear()
+                // 清理进度统计
+                synchronized(sentenceTotalSamples) { sentenceTotalSamples.clear() }
+                synchronized(predictedTotalPerSentence) { predictedTotalPerSentence.clear() }
+                currentSentenceForProgress = -1
+                globalWrittenSamples = 0L
+                sentenceStartWrittenSamples = 0L
+                lastSentenceForProgress = -1
+                lastFractionForSentence = 0f
+                endMarkerReachedForSentence = false
+                dynamicPredictedForSentence = 0L
             }
-        } finally {
-            releaseAudioTrack()
-            isStopped = true
-            protectionActive = false
-            protectedSentenceIndex = -1
-            deferredOnline.clear()
-            // 清理进度统计
-            synchronized(sentenceTotalSamples) { sentenceTotalSamples.clear() }
-            synchronized(predictedTotalPerSentence) { predictedTotalPerSentence.clear() }
-            currentSentenceForProgress = -1
-            globalWrittenSamples = 0L
-            sentenceStartWrittenSamples = 0L
-            lastSentenceForProgress = -1
-            lastFractionForSentence = 0f
-            endMarkerReachedForSentence = false
-            dynamicPredictedForSentence = 0L
         }
-    }
 
     /**
      * 控制命令处理：
@@ -464,7 +568,10 @@ class AudioPlayer(
      * - HARD：释放 AudioTrack 并结束保护期。
      */
     private suspend fun processControlCommand(control: Control) {
-        AppLogger.i(TAG, "正在处理控制命令: ${control.type}, 保留索引: ${control.preserveSentenceIndex}")
+        AppLogger.i(
+            TAG,
+            "正在处理控制命令: ${control.type}, 保留索引: ${control.preserveSentenceIndex}",
+        )
         val newGeneration = generation + 1
         generation = newGeneration
         AppLogger.d(TAG, "代次已更新至: $newGeneration")
@@ -474,17 +581,19 @@ class AudioPlayer(
             var preserved = 0
             while (true) {
                 val item = pcmChannel.tryReceive().getOrNull() ?: break
-                val keep = when (item) {
-                    is QueueItem.Pcm -> item.sentenceIndex == control.preserveSentenceIndex
-                    is QueueItem.Marker -> item.sentenceIndex == control.preserveSentenceIndex
-                    else -> false
-                }
-                if (keep) {
-                    val updated = when (item) {
-                        is QueueItem.Pcm -> item.copy(gen = newGeneration)
-                        is QueueItem.Marker -> item.copy(gen = newGeneration)
-                        else -> item
+                val keep =
+                    when (item) {
+                        is QueueItem.Pcm -> item.sentenceIndex == control.preserveSentenceIndex
+                        is QueueItem.Marker -> item.sentenceIndex == control.preserveSentenceIndex
+                        else -> false
                     }
+                if (keep) {
+                    val updated =
+                        when (item) {
+                            is QueueItem.Pcm -> item.copy(gen = newGeneration)
+                            is QueueItem.Marker -> item.copy(gen = newGeneration)
+                            else -> item
+                        }
                     newPcmChannel.trySend(updated)
                     preserved++
                 }
@@ -496,9 +605,13 @@ class AudioPlayer(
             protectionActive = true
             protectedSentenceIndex = control.preserveSentenceIndex
             deferredOnline.clear()
-            AppLogger.d(TAG, "进入保护期：仅允许句子 #${protectedSentenceIndex} 的离线数据。保留条目数=$preserved，已清空在线暂存桶。")
+            AppLogger.d(
+                TAG,
+                "进入保护期：仅允许句子 #$protectedSentenceIndex 的离线数据。保留条目数=$preserved，已清空在线暂存桶。",
+            )
         } else {
-            while (pcmChannel.tryReceive().isSuccess) { /* drain */ }
+            while (pcmChannel.tryReceive().isSuccess) { // drain
+            }
             AppLogger.d(TAG, "PCM 队列已完全清空。")
         }
 
@@ -521,6 +634,7 @@ class AudioPlayer(
                 endMarkerReachedForSentence = false
                 dynamicPredictedForSentence = 0L
             }
+
             ResetType.SOFT_QUEUE_ONLY -> {
                 AppLogger.d(TAG, "执行软重置：仅清队列(保留指定句)，已进入保护期。")
             }
@@ -550,7 +664,10 @@ class AudioPlayer(
             lastFractionForSentence = 0f
             endMarkerReachedForSentence = false
             // 初始化动态分母
-            val predictedRaw = synchronized(predictedTotalPerSentence) { predictedTotalPerSentence[item.sentenceIndex] ?: 0L }
+            val predictedRaw =
+                synchronized(predictedTotalPerSentence) {
+                    predictedTotalPerSentence[item.sentenceIndex] ?: 0L
+                }
             dynamicPredictedForSentence = predictedRaw
         }
 
@@ -564,7 +681,7 @@ class AudioPlayer(
                 AppLogger.i(
                     TAG,
                     "写入中捕获控制命令: type=${control.type}, preserve=${control.preserveSentenceIndex}, " +
-                            "currentSentence=${item.sentenceIndex}, written=$written/${item.length}"
+                        "currentSentence=${item.sentenceIndex}, written=$written/${item.length}",
                 )
 
                 processControlCommand(control)
@@ -583,7 +700,10 @@ class AudioPlayer(
             }
 
             if (!coroutineContext.isActive || isStopped || (item.gen != generation && !allowContinueAcrossGenBump)) {
-                AppLogger.d(TAG, "写入PCM时状态/代次变化(allowAcrossGen=$allowContinueAcrossGenBump)，中断写入。")
+                AppLogger.d(
+                    TAG,
+                    "写入PCM时状态/代次变化(allowAcrossGen=$allowContinueAcrossGenBump)，中断写入。",
+                )
                 return
             }
 
@@ -614,15 +734,24 @@ class AudioPlayer(
         val track = audioTrack ?: return
         AppLogger.d(TAG, "开始监视播放缓冲区排空...")
         try {
-            var last = -1; var stall = 0; val MAX_STALLS = 50
+            var last = -1
+            var stall = 0
+            val MAX_STALLS = 50
             while (coroutineContext.isActive && !isStopped) {
                 if (track.playState != AudioTrack.PLAYSTATE_PLAYING) break
                 val pos = track.playbackHeadPosition
-                if (last == -1 || pos > last) { stall = 0; last = pos } else { stall++ }
+                if (last == -1 || pos > last) {
+                    stall = 0
+                    last = pos
+                } else {
+                    stall++
+                }
                 if (stall > MAX_STALLS) break
                 delay(20)
             }
-        } catch (e: Exception) { AppLogger.e(TAG, "等待播放完成时出错", e) }
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "等待播放完成时出错", e)
+        }
     }
 
     private suspend fun switchSampleRate(newSampleRate: Int) {
@@ -655,14 +784,17 @@ class AudioPlayer(
                 return null
             }
             val bufferSizeBytes = (minBufferSize * 2).coerceAtLeast(minBufferSize)
-            AppLogger.d(TAG, "创建 AudioTrack: 采样率=$sampleRate Hz, 缓冲区大小=$bufferSizeBytes 字节")
+            AppLogger.d(
+                TAG,
+                "创建 AudioTrack: 采样率=$sampleRate Hz, 缓冲区大小=$bufferSizeBytes 字节",
+            )
             AudioTrack(
                 AudioManager.STREAM_MUSIC,
                 sampleRate,
                 channelConfig,
                 audioFormat,
                 bufferSizeBytes,
-                AudioTrack.MODE_STREAM
+                AudioTrack.MODE_STREAM,
             ).also { at ->
                 if (at.state != AudioTrack.STATE_INITIALIZED) {
                     AppLogger.e(TAG, "AudioTrack 初始化失败，状态: ${at.state}")
@@ -671,7 +803,10 @@ class AudioPlayer(
                 }
                 at.setStereoVolume(currentVolume, currentVolume)
             }
-        } catch (e: Exception) { AppLogger.e(TAG, "创建 AudioTrack 时出错", e); null }
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "创建 AudioTrack 时出错", e)
+            null
+        }
     }
 
     private suspend fun releaseAudioTrack() {
@@ -680,10 +815,14 @@ class AudioPlayer(
                 AppLogger.d(TAG, "正在释放 AudioTrack (采样率: ${track.sampleRate} Hz)...")
                 try {
                     if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                        track.pause(); track.flush()
+                        track.pause()
+                        track.flush()
                     }
-                    track.stop(); track.release()
-                } catch (e: Exception) { AppLogger.e(TAG, "释放 AudioTrack 时出现异常", e) }
+                    track.stop()
+                    track.release()
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "释放 AudioTrack 时出现异常", e)
+                }
             }
             audioTrack = null
         }
@@ -705,7 +844,10 @@ class AudioPlayer(
         val ack = CompletableDeferred<Unit>()
         controlChannel.send(Control(ResetType.SOFT_QUEUE_ONLY, ack, preserveSentenceIndex))
         ack.await()
-        AppLogger.d(TAG, "播放器已确认[软重置]完成，进入保护期：仅允许句子 #$preserveSentenceIndex 的离线数据。")
+        AppLogger.d(
+            TAG,
+            "播放器已确认[软重置]完成，进入保护期：仅允许句子 #$preserveSentenceIndex 的离线数据。",
+        )
     }
 
     /**
@@ -719,14 +861,27 @@ class AudioPlayer(
         length: Int = pcm.size,
         sampleRate: Int,
         source: SynthesisMode,
-        sentenceIndex: Int
+        sentenceIndex: Int,
     ) {
         if (isStopped || length <= 0) return
         if (protectionActive && source == SynthesisMode.OFFLINE && sentenceIndex != protectedSentenceIndex) {
-            AppLogger.i(TAG, "保护期丢弃入队的离线PCM：句子#$sentenceIndex (受保护句为#$protectedSentenceIndex)")
+            AppLogger.i(
+                TAG,
+                "保护期丢弃入队的离线PCM：句子#$sentenceIndex (受保护句为#$protectedSentenceIndex)",
+            )
             return
         }
-        pcmChannel.send(QueueItem.Pcm(generation, pcm, offset, length, sampleRate, source, sentenceIndex))
+        pcmChannel.send(
+            QueueItem.Pcm(
+                generation,
+                pcm,
+                offset,
+                length,
+                sampleRate,
+                source,
+                sentenceIndex,
+            ),
+        )
     }
 
     /**
@@ -738,7 +893,7 @@ class AudioPlayer(
         sentenceIndex: Int,
         type: MarkerType,
         source: SynthesisMode,
-        onReached: (() -> Unit)? = null
+        onReached: (() -> Unit)? = null,
     ) {
         if (isStopped) return
         if (protectionActive && source == SynthesisMode.OFFLINE && sentenceIndex != protectedSentenceIndex) {
@@ -754,7 +909,11 @@ class AudioPlayer(
      * 推荐尽快切到带 source 的重载，以便在保护期内正确丢弃“非受保护”的离线 Marker。
      */
     @Deprecated("Use enqueueMarker(sentenceIndex, type, source, onReached)")
-    suspend fun enqueueMarker(sentenceIndex: Int, type: MarkerType, onReached: (() -> Unit)? = null) {
+    suspend fun enqueueMarker(
+        sentenceIndex: Int,
+        type: MarkerType,
+        onReached: (() -> Unit)? = null,
+    ) {
         enqueueMarker(sentenceIndex, type, SynthesisMode.ONLINE, onReached)
     }
 
@@ -764,7 +923,8 @@ class AudioPlayer(
     }
 
     fun setVolume(volume: Float) {
-        val v = volume.coerceIn(0f, 1.0f); currentVolume = v
+        val v = volume.coerceIn(0f, 1.0f)
+        currentVolume = v
         audioTrack?.setStereoVolume(v, v)
     }
 
@@ -787,11 +947,13 @@ class AudioPlayer(
     suspend fun stopAndReleaseBlocking() {
         if (isStopped) return
         val jobToJoin = playbackJob
-        isStopped = true; isPaused = false
+        isStopped = true
+        isPaused = false
         protectionActive = false
         protectedSentenceIndex = -1
         deferredOnline.clear()
-        controlChannel.close(); pcmChannel.close()
+        controlChannel.close()
+        pcmChannel.close()
         jobToJoin?.cancelAndJoin()
         playbackJob = null
         // 清理进度统计
@@ -815,21 +977,28 @@ class AudioPlayer(
      * - ONLINE：在保护期内会被接收并暂存（最终按句序回吐）
      * - OFFLINE：仅受保护句会被接收；非受保护句在保护期内会被直接丢弃
      */
-    fun canAccept(source: SynthesisMode, sentenceIndex: Int): Boolean {
-        return if (!protectionActive) true
-        else {
+    fun canAccept(
+        source: SynthesisMode,
+        sentenceIndex: Int,
+    ): Boolean =
+        if (!protectionActive) {
+            true
+        } else {
             when (source) {
                 SynthesisMode.ONLINE -> true
                 SynthesisMode.OFFLINE -> sentenceIndex == protectedSentenceIndex
             }
         }
-    }
 
     fun isInProtection(): Boolean = protectionActive
+
     fun getProtectedSentenceIndex(): Int = protectedSentenceIndex
 
     // 供上层设置预测总样本
-    fun setPredictedTotalSamples(sentenceIndex: Int, predictedSamples: Long) {
+    fun setPredictedTotalSamples(
+        sentenceIndex: Int,
+        predictedSamples: Long,
+    ) {
         if (predictedSamples <= 0) return
         synchronized(predictedTotalPerSentence) {
             predictedTotalPerSentence[sentenceIndex] = predictedSamples
