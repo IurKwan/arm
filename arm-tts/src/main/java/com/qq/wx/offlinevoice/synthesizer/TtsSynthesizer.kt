@@ -3,8 +3,9 @@ package com.qq.wx.offlinevoice.synthesizer
 import android.content.Context
 import android.content.SharedPreferences
 import android.widget.Toast
-import java.nio.ShortBuffer
-import java.util.concurrent.atomic.AtomicInteger
+import androidx.core.content.edit
+import com.qq.wx.offlinevoice.synthesizer.cache.TtsCache
+import com.qq.wx.offlinevoice.synthesizer.normalizer.TraditionalTtsNormalizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,14 +21,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.nio.ShortBuffer
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
-import kotlin.properties.Delegates
 import kotlin.math.min
 import kotlin.math.pow
-import androidx.core.content.edit
-import com.qq.wx.offlinevoice.synthesizer.cache.TtsCache
-import com.qq.wx.offlinevoice.synthesizer.normalizer.TraditionalTtsNormalizer
-import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.properties.Delegates
 
 /**
  * TTS 合成器主类（Actor 模型）。
@@ -57,14 +57,20 @@ import java.util.concurrent.CopyOnWriteArrayList
 class TtsSynthesizer(
     private val context: Context,
     speaker: Speaker,
-    private var currentCallback: TtsCallback? = null
+    private var currentCallback: TtsCallback? = null,
 ) {
-
     private sealed class SynthesisResult {
         object Success : SynthesisResult()
-        data class Failure(val reason: String) : SynthesisResult()
+
+        data class Failure(
+            val reason: String,
+        ) : SynthesisResult()
+
         object Deferred : SynthesisResult() // 暂不产出（如保护期/会话切换）
-        data class Skip(val reason: String) : SynthesisResult()
+
+        data class Skip(
+            val reason: String,
+        ) : SynthesisResult()
     }
 
     private sealed class Command {
@@ -72,44 +78,76 @@ class TtsSynthesizer(
             val text: String,
             val beginPos: Int = 0,
             // 是否为繁体
-            val isTraditional: Boolean = false
+            val isTraditional: Boolean = false,
         ) : Command()
-        data class SetSpeed(val speed: Float) : Command()
-        data class SetVolume(val volume: Float) : Command()
-        data class SetVoice(val speaker: Speaker) : Command()
-        data class SetCallback(val callback: TtsCallback?) : Command()
+
+        data class SetSpeed(
+            val speed: Float,
+        ) : Command()
+
+        data class SetVolume(
+            val volume: Float,
+        ) : Command()
+
+        data class SetVoice(
+            val speaker: Speaker,
+        ) : Command()
+
+        data class SetCallback(
+            val callback: TtsCallback?,
+        ) : Command()
+
         object Pause : Command()
+
         object Resume : Command()
+
         object Stop : Command()
+
         object Release : Command()
-        data class SetStrategy(val strategy: TtsStrategy) : Command()
+
+        data class SetStrategy(
+            val strategy: TtsStrategy,
+        ) : Command()
+
         data class InternalSentenceStart(
             val index: Int,
             val sentence: String,
             val mode: SynthesisMode,
             val startPos: Int,
             val endPos: Int,
-            val triggerReason: String? = null
+            val triggerReason: String? = null,
         ) : Command()
-        data class InternalSentenceEnd(val index: Int, val sentence: String) : Command()
+
+        data class InternalSentenceEnd(
+            val index: Int,
+            val sentence: String,
+        ) : Command()
+
         object InternalSynthesisFinished : Command()
-        data class InternalError(val message: String) : Command()
+
+        data class InternalError(
+            val message: String,
+        ) : Command()
 
         // 新增：按句 seek 命令
-        data class SeekTo(val index: Int) : Command()
+        data class SeekTo(
+            val index: Int,
+        ) : Command()
     }
 
     init {
         AppLogger.initialize(context)
-        AppLogger.setCallback(object : AppLoggerCallback {
-            override fun onLogWritten(
-                level: Level,
-                tag: String,
-                msg: String
-            ) {
-                currentCallback?.onLog(level, "[$tag] $msg")
-            }
-        })
+        AppLogger.setCallback(
+            object : AppLoggerCallback {
+                override fun onLogWritten(
+                    level: Level,
+                    tag: String,
+                    msg: String,
+                ) {
+                    currentCallback?.onLog(level, "[$tag] $msg")
+                }
+            },
+        )
     }
 
     private var currentState: TtsPlaybackState = TtsPlaybackState.IDLE
@@ -121,19 +159,19 @@ class TtsSynthesizer(
         val utteranceId: String,
         val start: Int,
         val end: Int,
-        val originalGroupId: Int,   // 物理段所属的“原始行”ID
-        val partInGroup: Int,       // 行内分段序号
-        val groupStart: Int,        // 行整体开始位置
-        val groupEnd: Int           // 行整体结束位置
+        val originalGroupId: Int, // 物理段所属的“原始行”ID
+        val partInGroup: Int, // 行内分段序号
+        val groupStart: Int, // 行整体开始位置
+        val groupEnd: Int, // 行整体结束位置
     ) {
-        override fun toString(): String {
-            return "index=$index, 第$originalGroupId 段 第$partInGroup 句, text='${text.trim()}'"
-        }
+        override fun toString(): String = "index=$index, 第$originalGroupId 段 第$partInGroup 句, text='${text.trim()}'"
     }
+
     private val sentences = CopyOnWriteArrayList<TtsBag>()
     private var isTtsTextTraditional: Boolean = false
 
-    @Volatile private var playingSentenceIndex: Int = 0 // 仍指向“物理段”索引
+    @Volatile
+    private var playingSentenceIndex: Int = 0 // 仍指向“物理段”索引
     private var synthesisSentenceIndex by Delegates.observable(0) { _, oldValue, newValue ->
         AppLogger.d(TAG, "修改synthesisSentenceIndex： $oldValue -> $newValue")
     }
@@ -151,10 +189,11 @@ class TtsSynthesizer(
     private val pcmBuffer: ShortBuffer = ShortBuffer.allocate(TtsConstants.PCM_BUFFER_SIZE)
 
     private val appScope = CoroutineScope(Dispatchers.Default + Job()) // 顶层应用作用域（常驻）
-    private var sessionJob: Job? = null                                  // 会话作用域的根 Job
-    private var synthesisJob: Job? = null                                 // 当前 startSynthesis 顶层任务
+    private var sessionJob: Job? = null // 会话作用域的根 Job
+    private var synthesisJob: Job? = null // 当前 startSynthesis 顶层任务
 
-    private val audioPlayer: AudioPlayer = AudioPlayer(initialSampleRate = TtsConstants.DEFAULT_SAMPLE_RATE)
+    private val audioPlayer: AudioPlayer =
+        AudioPlayer(initialSampleRate = TtsConstants.DEFAULT_SAMPLE_RATE)
 
     private var isPausedByError = false
     private var onlineAudioProcessor: AudioSpeedProcessor? = null
@@ -166,24 +205,33 @@ class TtsSynthesizer(
     private var onlineCooldownUntilTimestamp: Long = 0L
 
     // ONLINE_PREFERRED 升级窗口（配合 AudioPlayer 保护期）
-    @Volatile private var upgradeWindowActive: Boolean = false
-    @Volatile private var upgradeProtectedIndex: Int = -1
+    @Volatile
+    private var upgradeWindowActive: Boolean = false
+
+    @Volatile
+    private var upgradeProtectedIndex: Int = -1
 
     private val commandChannel = Channel<Command>(Channel.UNLIMITED)
 
     // 暂停期待应用参数变更
-    private enum class PendingChange { SPEAKER, SPEED }
+    private enum class PendingChange { SPEAKER, SPEED, STRATEGY }
+
     private val pendingChanges = mutableSetOf<PendingChange>()
 
     // 新增：暂停期间的 seek 目标与防抖标记
-    @Volatile private var pendingSeekIndex: Int? = null   // 逻辑行索引
-    @Volatile private var pendingSeekScheduled: Boolean = false
+    @Volatile
+    private var pendingSeekIndex: Int? = null
+
+    // 逻辑行索引
+    @Volatile
+    private var pendingSeekScheduled: Boolean = false
 
     // ========= 新增：字符进度回调循环 =========
     private var characterProgressJob: Job? = null
 
     // ===== EWMA / 预测与持久化（SharedPreferences） =====
-    private val ewmaPrefs: SharedPreferences = context.getSharedPreferences("tts_ewma", Context.MODE_PRIVATE)
+    private val ewmaPrefs: SharedPreferences =
+        context.getSharedPreferences("tts_ewma", Context.MODE_PRIVATE)
 
     // 运行期缓存（内存命中后避免频繁 IO）
     private val scaleOverallByBucket = mutableMapOf<String, Float>()
@@ -197,70 +245,80 @@ class TtsSynthesizer(
     private val boostedPredictedSentences = mutableSetOf<Int>()
 
     // —— 新增：仅用于“字符进度回调映射”的分数平滑状态（不影响播放器与日志） —— //
-    @Volatile private var mapSmoothLastSentence: Int = -1
-    @Volatile private var mapSmoothFrac: Float = 0f
+    @Volatile
+    private var mapSmoothLastSentence: Int = -1
+
+    @Volatile
+    private var mapSmoothFrac: Float = 0f
 
     // —— 新增：BUFFERING 状态管理 —— //
     private var bufferingJob: Job? = null
-    @Volatile private var bufferingSentenceIndex: Int? = null
+
+    @Volatile
+    private var bufferingSentenceIndex: Int? = null
 
     // ================= 逻辑行映射（行粒度回调门面） =================
     private var totalLogicalLines: Int = 0
-    private val segmentToLine = CopyOnWriteArrayList<Int>()           // 物理段 -> 行ID
-    private val lineFirstSegment = mutableListOf<Int>()        // 行ID -> 首物理段索引
-    private val lineLastSegment = mutableListOf<Int>()         // 行ID -> 尾物理段索引
-    private val lineTexts = CopyOnWriteArrayList<String>()            // 行完整文本（未经裁剪）
-    private val lineStartPos = mutableListOf<Int>()            // 行整体开始
-    private val lineEndPos = mutableListOf<Int>()              // 行整体结束
-    private val lineStarted = mutableSetOf<Int>()              // 已触发 start 的行
-    private val lineCompleted = mutableSetOf<Int>()            // 已触发 complete 的行
+    private val segmentToLine = CopyOnWriteArrayList<Int>() // 物理段 -> 行ID
+    private val lineFirstSegment = mutableListOf<Int>() // 行ID -> 首物理段索引
+    private val lineLastSegment = mutableListOf<Int>() // 行ID -> 尾物理段索引
+    private val lineTexts = CopyOnWriteArrayList<String>() // 行完整文本（未经裁剪）
+    private val lineStartPos = mutableListOf<Int>() // 行整体开始
+    private val lineEndPos = mutableListOf<Int>() // 行整体结束
+    private val lineStarted = mutableSetOf<Int>() // 已触发 start 的行
+    private val lineCompleted = mutableSetOf<Int>() // 已触发 complete 的行
 
     companion object {
         private const val TAG = "TtsSynthesizer"
         private var linkedLibError: Throwable? = null
         private val instanceCount = AtomicInteger(0)
         private val nativeEngineLock = Mutex()
-        @Volatile private var nativeEngine: SynthesizerNative? = null
-        @Volatile private var currentVoiceCode: String? = null
+
+        @Volatile
+        private var nativeEngine: SynthesizerNative? = null
+
+        @Volatile
+        private var currentVoiceCode: String? = null
 
         private const val BASE_COOLDOWN_MS = 3000L
         private const val MAX_COOLDOWN_MS = 60000L
+
         // 字符进度轮询周期（毫秒）
         private const val CHAR_PROGRESS_INTERVAL_MS = 50L
 
         // ========= 自适应预测基准常量（速度=1.0 的基线） =========
-        private const val BASE_UNIT_MS      = 140f   // 原 PRED_BASE_MS_PER_UNIT 158 略降
-        private const val BASE_INTERCEPT_MS = 145f   // 原 150
-        private const val BASE_MIN_MS       = 370f   // 原 380
-        private const val BASE_COMMA_MS     = 500f   // 介于之前多组值之间
-        private const val BASE_PERIOD_MS    = 600f   // 保持偏大句末停顿
+        private const val BASE_UNIT_MS = 140f // 原 PRED_BASE_MS_PER_UNIT 158 略降
+        private const val BASE_INTERCEPT_MS = 145f // 原 150
+        private const val BASE_MIN_MS = 370f // 原 380
+        private const val BASE_COMMA_MS = 500f // 介于之前多组值之间
+        private const val BASE_PERIOD_MS = 600f // 保持偏大句末停顿
         private const val DEFAULT_INIT_SCALE_BASE = 1.32f
 
         // 压缩幂指数（高速下缩短幅度更大）
-        private const val POW_UNIT     = 0.45f  // 原 0.35：单字时长在高 speed 更快压缩
-        private const val POW_INTERCEPT= 0.20f  // 保持
-        private const val POW_MIN      = 0.40f  // 原 0.30：最小时长也随 speed 更明显缩短
-        private const val POW_COMMA    = 0.78f  // 原 0.60：逗号停顿在高 speed 显著缩短
-        private const val POW_PERIOD   = 0.85f  // 原 0.65：句末停顿在高 speed 显著缩短
-        private const val POW_SCALE    = 0.60f  // 原 0.40：冷启动整体比例在高 speed 更快收小
+        private const val POW_UNIT = 0.45f // 原 0.35：单字时长在高 speed 更快压缩
+        private const val POW_INTERCEPT = 0.20f // 保持
+        private const val POW_MIN = 0.40f // 原 0.30：最小时长也随 speed 更明显缩短
+        private const val POW_COMMA = 0.78f // 原 0.60：逗号停顿在高 speed 显著缩短
+        private const val POW_PERIOD = 0.85f // 原 0.65：句末停顿在高 speed 显著缩短
+        private const val POW_SCALE = 0.60f // 原 0.40：冷启动整体比例在高 speed 更快收小
 
         // 低速附加 BOOST 最大值
-        private const val LOW_BOOST_UNIT_MAX    = 0.25f
-        private const val LOW_BOOST_INTERCEPT_MAX=0.15f
-        private const val LOW_BOOST_MIN_MAX     = 0.20f
-        private const val LOW_BOOST_COMMA_MAX   = 0.65f
-        private const val LOW_BOOST_PERIOD_MAX  = 0.80f
-        private const val LOW_BOOST_SCALE_MAX   = 0.22f
-        private const val LOW_BOOST_POW         = 1.1f
+        private const val LOW_BOOST_UNIT_MAX = 0.25f
+        private const val LOW_BOOST_INTERCEPT_MAX = 0.15f
+        private const val LOW_BOOST_MIN_MAX = 0.20f
+        private const val LOW_BOOST_COMMA_MAX = 0.65f
+        private const val LOW_BOOST_PERIOD_MAX = 0.80f
+        private const val LOW_BOOST_SCALE_MAX = 0.22f
+        private const val LOW_BOOST_POW = 1.1f
 
         // 句中动态抬分母基准（再自适应）
         private const val MID_BOOST_RATIO_BASE = 1.05f
-        private const val MID_BOOST_MULT_BASE  = 1.17f
+        private const val MID_BOOST_MULT_BASE = 1.17f
         private const val MID_BOOST_STEP_MS_BASE = 250f
-        private const val MID_BOOST_MIN_MS_BASE  = 500f
+        private const val MID_BOOST_MIN_MS_BASE = 500f
 
         // 保留旧常量名用于兼容其它代码引用（值取基准）
-        private const val DEFAULT_INIT_SCALE    = DEFAULT_INIT_SCALE_BASE
+        private const val DEFAULT_INIT_SCALE = DEFAULT_INIT_SCALE_BASE
 
         // EWMA 学习率（保持原逻辑）
         private const val ALPHA_OFFLINE = 0.06f
@@ -289,7 +347,10 @@ class TtsSynthesizer(
             }
         }
 
-        fun initLogger(context: Context, config: AppLoggerConfig = AppLoggerConfig()) {
+        fun initLogger(
+            context: Context,
+            config: AppLoggerConfig = AppLoggerConfig(),
+        ) {
             AppLogger.initialize(context, config)
         }
     }
@@ -307,13 +368,23 @@ class TtsSynthesizer(
             runCatching {
                 nativeEngine?.init(voiceDataPath.toByteArray())
             }.onFailure {
-                AppLogger.e(TAG, "TtsSynthesizer 初始化本地引擎失败: ${it.message}", it, important = true)
+                AppLogger.e(
+                    TAG,
+                    "TtsSynthesizer 初始化本地引擎失败: ${it.message}",
+                    it,
+                    important = true,
+                )
                 // 初始化失败时释放本地引擎，策略强制回 OFFLINE_ONLY
                 strategyManager.setStrategy(TtsStrategy.OFFLINE_ONLY)
                 instanceCount.decrementAndGet()
                 nativeEngine = null
                 if (linkedLibError != null) {
-                    AppLogger.e(TAG, "关联库加载失败，原始错误： ${linkedLibError?.message}", linkedLibError!!, important = true)
+                    AppLogger.e(
+                        TAG,
+                        "关联库加载失败，原始错误： ${linkedLibError?.message}",
+                        linkedLibError!!,
+                        important = true,
+                    )
                     currentCallback?.onInitialized(linkedLibError!!)
                 } else {
                     currentCallback?.onInitialized(it)
@@ -323,21 +394,37 @@ class TtsSynthesizer(
                 currentCallback?.onInitialized(null)
             }
         } else {
-            AppLogger.i(TAG, "已有 TtsSynthesizer 实例存在，跳过本地引擎初始化。$nativeEngine, instanceCount=${instanceCount.get()}")
+            AppLogger.i(
+                TAG,
+                "已有 TtsSynthesizer 实例存在，跳过本地引擎初始化。$nativeEngine, instanceCount=${instanceCount.get()}",
+            )
         }
-        //sendCommand(Command.SetCallback(null))
+        // sendCommand(Command.SetCallback(null))
     }
 
     // ============ 公共 API ============
     fun setCallback(callback: TtsCallback?) = sendCommand(Command.SetCallback(callback))
+
     fun setSpeed(speed: Float) = sendCommand(Command.SetSpeed(speed))
+
     fun setVolume(volume: Float) = sendCommand(Command.SetVolume(volume))
+
     fun setVoice(speaker: Speaker) = sendCommand(Command.SetVoice(speaker))
-    fun speak(text: String, beginPos: Int = 0, isTraditional: Boolean = false) = sendCommand(Command.Speak(text, beginPos ,isTraditional))
+
+    fun speak(
+        text: String,
+        beginPos: Int = 0,
+        isTraditional: Boolean = false,
+    ) = sendCommand(Command.Speak(text, beginPos, isTraditional))
+
     fun pause() = sendCommand(Command.Pause)
+
     fun resume() = sendCommand(Command.Resume)
+
     fun stop() = sendCommand(Command.Stop)
+
     fun release() = sendCommand(Command.Release)
+
     fun setStrategy(strategy: TtsStrategy) = sendCommand(Command.SetStrategy(strategy))
 
     /**
@@ -346,42 +433,82 @@ class TtsSynthesizer(
     fun seekToSentence(index: Int) = sendCommand(Command.SeekTo(index)) // index 按“逻辑行”语义
 
     fun isSpeaking(): Boolean = isPlaying.value
+
     fun getStatus(): TtsStatus {
         // playingSentenceIndex 指物理段，需映射到逻辑行
         val lineId = segmentToLine.getOrNull(playingSentenceIndex) ?: 0
         val currentSentence = lineTexts.getOrNull(lineId) ?: ""
         return TtsStatus(currentState, totalLogicalLines, lineId, currentSentence)
     }
-    private fun sendCommand(command: Command) { commandChannel.trySend(command) }
+
+    private fun sendCommand(command: Command) {
+        commandChannel.trySend(command)
+    }
 
     // ============ Actor 命令处理 ============
     private suspend fun commandProcessor() {
         for (command in commandChannel) {
             when (command) {
-                is Command.Speak -> handleSpeak(command.text, command.beginPos, command.isTraditional)
-                is Command.SetSpeed -> handleSetSpeed(command.speed)
-                is Command.SetVolume -> handleSetVolume(command.volume)
-                is Command.SetVoice -> handleSetSpeaker(command.speaker)
-                is Command.Pause -> handlePause()
-                is Command.Resume -> handleResume()
-                is Command.Stop -> handleStop()
-                is Command.Release -> { handleRelease(); break }
-                is Command.SetStrategy -> strategyManager.setStrategy(command.strategy)
-                is Command.SetCallback -> {
-                    currentCallback = command.callback;
-                    //currentCallback?.onInitialized(true)
+                is Command.Speak -> {
+                    handleSpeak(
+                        command.text,
+                        command.beginPos,
+                        command.isTraditional,
+                    )
                 }
+
+                is Command.SetSpeed -> {
+                    handleSetSpeed(command.speed)
+                }
+
+                is Command.SetVolume -> {
+                    handleSetVolume(command.volume)
+                }
+
+                is Command.SetVoice -> {
+                    handleSetSpeaker(command.speaker)
+                }
+
+                is Command.Pause -> {
+                    handlePause()
+                }
+
+                is Command.Resume -> {
+                    handleResume()
+                }
+
+                is Command.Stop -> {
+                    handleStop()
+                }
+
+                is Command.Release -> {
+                    handleRelease()
+                    break
+                }
+
+                is Command.SetStrategy -> {
+                    handleSetStrategy(command.strategy)
+                }
+
+                is Command.SetCallback -> {
+                    currentCallback = command.callback
+                    // currentCallback?.onInitialized(true)
+                }
+
                 is Command.InternalSentenceStart -> {
                     // 映射到逻辑行
                     clearBufferingOnProgress(command.index)
                     val lineId = segmentToLine.getOrNull(command.index) ?: command.index
                     playingSentenceIndex = command.index // 内部仍记录物理段
-                    //if (!lineStarted.contains(lineId)) {
+                    // if (!lineStarted.contains(lineId)) {
                     lineStarted.add(lineId)
                     // 判断是否为“仅由标点和空白组成的句子”（如 "…", "!!!", "。。   " ）。
                     // 这种句子在 TTS 中一般不会真正朗读，因此需要特殊处理。
                     val isUnderlyingPunctuationOnly =
-                        command.sentence.trim().processForTts().isOnlyPunctuationOrEmpty()
+                        command.sentence
+                            .trim()
+                            .processForTts()
+                            .isOnlyPunctuationOrEmpty()
 
                     // 若该句子是纯标点，则不触发 onSentenceStart 回调。
                     // -------------------------------------------------------------
@@ -398,18 +525,21 @@ class TtsSynthesizer(
                     //
                     // 因此：
                     // 内部事件仍保留，但对业务层不回调 onSentenceStart。
-                    //if (!isUnderlyingPunctuationOnly) { // 2025-12-12 暂时去掉此限制，会导致定位出问题
-                        currentCallback?.onSentenceStart(
-                            sentenceIndex = lineId,
-                            sentence = lineTexts.getOrNull(lineId) ?: command.sentence,
-                            totalSentences = totalLogicalLines,
-                            mode = command.mode,
-                            startPos = lineStartPos.getOrNull(lineId) ?: command.startPos,
-                            endPos = lineEndPos.getOrNull(lineId) ?: command.endPos,
-                            triggerReason = command.triggerReason
-                        )
-                    //}
-                    AppLogger.d(TAG, "修改句子索引为 ${lineId}: ${lineTexts.getOrNull(lineId) ?: command.sentence}")
+                    // if (!isUnderlyingPunctuationOnly) { // 2025-12-12 暂时去掉此限制，会导致定位出问题
+                    currentCallback?.onSentenceStart(
+                        sentenceIndex = lineId,
+                        sentence = lineTexts.getOrNull(lineId) ?: command.sentence,
+                        totalSentences = totalLogicalLines,
+                        mode = command.mode,
+                        startPos = lineStartPos.getOrNull(lineId) ?: command.startPos,
+                        endPos = lineEndPos.getOrNull(lineId) ?: command.endPos,
+                        triggerReason = command.triggerReason,
+                    )
+                    // }
+                    AppLogger.d(
+                        TAG,
+                        "修改句子索引为 $lineId: ${lineTexts.getOrNull(lineId) ?: command.sentence}",
+                    )
                     currentCallback?.onSentenceProgressChanged(
                         sentenceIndex = lineId,
                         sentence = lineTexts.getOrNull(lineId) ?: command.sentence,
@@ -418,17 +548,28 @@ class TtsSynthesizer(
                         startPos = lineStartPos.getOrNull(lineId) ?: command.startPos,
                         endPos = lineEndPos.getOrNull(lineId) ?: command.endPos,
                     )
-                    //}
+                    // }
                 }
+
                 is Command.InternalSentenceEnd -> {
                     val lineId = segmentToLine.getOrNull(command.index) ?: command.index
                     // 仅当该物理段是该行最后一段时触发 complete
-                    if (!lineCompleted.contains(lineId) && command.index == lineLastSegment.getOrNull(lineId)) {
+                    if (!lineCompleted.contains(lineId) && command.index ==
+                        lineLastSegment.getOrNull(
+                            lineId,
+                        )
+                    ) {
                         lineCompleted.add(lineId)
                         onSentenceFinishedForEwma(command.index, command.sentence)
-                        currentCallback?.onSentenceComplete(lineId, lineTexts.getOrNull(lineId) ?: command.sentence)
+                        currentCallback?.onSentenceComplete(
+                            lineId,
+                            lineTexts.getOrNull(lineId) ?: command.sentence,
+                        )
                         if (upgradeWindowActive && command.index == upgradeProtectedIndex) {
-                            AppLogger.i(TAG, "受保护句 #$upgradeProtectedIndex 已结束，关闭升级窗口。")
+                            AppLogger.i(
+                                TAG,
+                                "受保护句 #$upgradeProtectedIndex 已结束，关闭升级窗口。",
+                            )
                             upgradeWindowActive = false
                             upgradeProtectedIndex = -1
                         }
@@ -449,18 +590,25 @@ class TtsSynthesizer(
                         scheduleBufferingIfNeeded(nextSeg)
                     }
                 }
-                is Command.InternalSynthesisFinished -> { /* no-op */ }
+
+                is Command.InternalSynthesisFinished -> { // no-op
+                }
+
                 is Command.InternalError -> {
                     AppLogger.e(TAG, "收到内部错误，将执行 handleStop: ${command.message}")
                     handleStop()
                     currentCallback?.onError(command.message)
                 }
-                is Command.SeekTo -> handleSeekTo(command.index)
+
+                is Command.SeekTo -> {
+                    handleSeekTo(command.index)
+                }
             }
         }
     }
 
     // ============ 会话作用域管理（B） ============
+
     /**
      * 创建新的会话作用域（SupervisorJob），并取消旧会话。
      * 所有会话内子任务依赖协程取消语义自动退出，尽量不在业务处散落判断。
@@ -477,7 +625,11 @@ class TtsSynthesizer(
     private fun isSessionActive(): Boolean = sessionJob?.isActive == true
 
     // ============ 命令实现 ============
-    private suspend fun handleSpeak(text: String, beginPos: Int = 0, isTraditional: Boolean = false) {
+    private suspend fun handleSpeak(
+        text: String,
+        beginPos: Int = 0,
+        isTraditional: Boolean = false,
+    ) {
         if (currentState == TtsPlaybackState.PLAYING || currentState == TtsPlaybackState.PAUSED) {
             AppLogger.d(TAG, "已有语音在播放中，将先停止当前任务再开始新的任务。")
             handleStop()
@@ -500,11 +652,20 @@ class TtsSynthesizer(
         mapSmoothLastSentence = -1
         mapSmoothFrac = 0f
 
-        val replacedText = text//.replaceSpecialChar()
-        val result = when (splitterStrategy) {
-            SentenceSplitterStrategy.NEWLINE -> SentenceSplitter.sentenceSplitListByLine(replacedText, beginPos)
-            SentenceSplitterStrategy.PUNCTUATION -> SentenceSplitter.sentenceSplitList(replacedText)
-        }
+        val replacedText = text // .replaceSpecialChar()
+        val result =
+            when (splitterStrategy) {
+                SentenceSplitterStrategy.NEWLINE -> {
+                    SentenceSplitter.sentenceSplitListByLine(
+                        replacedText,
+                        beginPos,
+                    )
+                }
+
+                SentenceSplitterStrategy.PUNCTUATION -> {
+                    SentenceSplitter.sentenceSplitList(replacedText)
+                }
+            }
         if (result.isEmpty()) {
             AppLogger.w(TAG, "提供的文本中未找到有效句子。", important = true)
             currentCallback?.onError("文本中没有有效的句子")
@@ -532,7 +693,10 @@ class TtsSynthesizer(
             if (targetIndex != -1) {
                 playingSentenceIndex = targetIndex
                 synthesisSentenceIndex = targetIndex
-                AppLogger.i(TAG, "speak: 定位到指定的 beginPos=$beginPos 对应的句子索引 $targetIndex")
+                AppLogger.i(
+                    TAG,
+                    "speak: 定位到指定的 beginPos=$beginPos 对应的句子索引 $targetIndex",
+                )
             } else {
                 AppLogger.w(TAG, "speak: 提供的 beginPos=$beginPos 超出文本范围，忽略该参数。")
             }
@@ -567,7 +731,10 @@ class TtsSynthesizer(
     }
 
     // Helper to ensure segmentToLine size
-    private fun MutableList<Int>.addIndexedEnsureCapacity(index: Int, value: Int) {
+    private fun MutableList<Int>.addIndexedEnsureCapacity(
+        index: Int,
+        value: Int,
+    ) {
         if (index >= size) {
             repeat(index - size + 1) { add(-1) }
         }
@@ -584,17 +751,50 @@ class TtsSynthesizer(
         AppLogger.i(TAG, "setSpeed: 设定新速度=$newSpeed")
 
         when (currentState) {
-            TtsPlaybackState.PLAYING -> {
+            TtsPlaybackState.PLAYING, TtsPlaybackState.BUFFERING -> {
                 processorMutex.withLock { onlineAudioProcessor?.setSpeed(newSpeed) }
-                AppLogger.i(TAG, "播放中修改速度，执行软重启以立即生效。")
+                AppLogger.i(TAG, "播放中、缓冲中修改速度，执行软重启以立即生效。")
                 softRestart()
             }
+
             TtsPlaybackState.PAUSED -> {
                 val first = pendingChanges.add(PendingChange.SPEED)
-                AppLogger.i(TAG, "暂停中修改速度，记录待应用变更（首次=$first），恢复时从当前句开头用新速度播放。")
+                AppLogger.i(
+                    TAG,
+                    "暂停中修改速度，记录待应用变更（首次=$first），恢复时从当前句开头用新速度播放。",
+                )
                 if (first && !pendingSeekScheduled) scheduleParamRestartWhilePaused("setSpeed")
             }
-            else -> AppLogger.i(TAG, "IDLE 状态修改速度，将在下一次 speak 生效。")
+
+            else -> {
+                AppLogger.i(TAG, "IDLE 状态修改速度，将在下一次 speak 生效。")
+            }
+        }
+    }
+
+    private suspend fun handleSetStrategy(strategy: TtsStrategy) {
+        if (strategyManager.currentStrategy == strategy) {
+            AppLogger.d(TAG, "setStrategy: 与当前策略相同，忽略。")
+            return
+        }
+        strategyManager.setStrategy(strategy)
+        AppLogger.i(TAG, "setStrategy: 设定新策略=$strategy")
+
+        when (currentState) {
+            TtsPlaybackState.PLAYING, TtsPlaybackState.BUFFERING -> {
+                AppLogger.i(TAG, "播放中、缓冲中修改策略，执行软重启以立即生效。")
+                softRestart()
+            }
+
+            TtsPlaybackState.PAUSED -> {
+                AppLogger.i(TAG, "暂停中修改策略，恢复时从当前句开头用新策略播放。")
+                val first = pendingChanges.add(PendingChange.STRATEGY) // 复用 SPEED 标记
+                if (first && !pendingSeekScheduled) scheduleParamRestartWhilePaused("setStrategy")
+            }
+
+            else -> {
+                AppLogger.i(TAG, "IDLE 状态修改策略，将在下一次 speak 生效。")
+            }
         }
     }
 
@@ -610,12 +810,19 @@ class TtsSynthesizer(
                 AppLogger.i(TAG, "播放中、缓冲中切换 speaker，执行软重启以立即生效。")
                 softRestart()
             }
+
             TtsPlaybackState.PAUSED -> {
                 val first = pendingChanges.add(PendingChange.SPEAKER)
-                AppLogger.i(TAG, "暂停中切换 speaker，记录待应用变更（首次=$first），恢复时从当前句开头用新 speaker 播放。")
+                AppLogger.i(
+                    TAG,
+                    "暂停中切换 speaker，记录待应用变更（首次=$first），恢复时从当前句开头用新 speaker 播放。",
+                )
                 if (first && !pendingSeekScheduled) scheduleParamRestartWhilePaused("setVoice")
             }
-            else -> AppLogger.i(TAG, "当前状态($currentState)切换 speaker，等待下一次 speak 生效。")
+
+            else -> {
+                AppLogger.i(TAG, "当前状态($currentState)切换 speaker，等待下一次 speak 生效。")
+            }
         }
     }
 
@@ -631,7 +838,9 @@ class TtsSynthesizer(
     }
 
     private fun handlePause() {
-        if (currentState != TtsPlaybackState.PLAYING && currentState != TtsPlaybackState.PAUSED && currentState != TtsPlaybackState.BUFFERING) {
+        if (currentState != TtsPlaybackState.PLAYING && currentState != TtsPlaybackState.PAUSED &&
+            currentState != TtsPlaybackState.BUFFERING
+        ) {
             AppLogger.w(TAG, "无法暂停，当前状态为 $currentState")
             return
         }
@@ -665,7 +874,10 @@ class TtsSynthesizer(
         val needSeekRestart = pendingSeekIndex != null
 
         if (needParamRestart || needErrorRestart || needSeekRestart) {
-            AppLogger.i(TAG, "恢复前需要重启合成：pendingChanges=$pendingChanges, pendingSeekIndex=$pendingSeekIndex, isPausedByError=$needErrorRestart。")
+            AppLogger.i(
+                TAG,
+                "恢复前需要重启合成：pendingChanges=$pendingChanges, pendingSeekIndex=$pendingSeekIndex, isPausedByError=$needErrorRestart。",
+            )
             val restartLine = pendingSeekIndex ?: segmentToLine.getOrNull(playingSentenceIndex) ?: 0
             val firstSeg = lineFirstSegment.getOrNull(restartLine) ?: playingSentenceIndex
 
@@ -698,7 +910,10 @@ class TtsSynthesizer(
 
             // 新会话下启动合成
             startSynthesis()
-            AppLogger.d(TAG, "恢复前：新的合成任务已从物理段索引 $synthesisSentenceIndex 处启动（逻辑行=$restartLine）。")
+            AppLogger.d(
+                TAG,
+                "恢复前：新的合成任务已从物理段索引 $synthesisSentenceIndex 处启动（逻辑行=$restartLine）。",
+            )
         }
 
         updateState(TtsPlaybackState.PLAYING)
@@ -827,7 +1042,12 @@ class TtsSynthesizer(
         val job = synthesisJob
         synthesisJob = null
         job?.cancel()
-        appScope.launch { try { job?.join() } catch (_: Exception) { } }
+        appScope.launch {
+            try {
+                job?.join()
+            } catch (_: Exception) {
+            }
+        }
 
         // 清空播放队列
         audioPlayer.resetBlocking()
@@ -847,7 +1067,10 @@ class TtsSynthesizer(
      */
     private suspend fun handleSeekTo(requestedLineIndex: Int) {
         if (totalLogicalLines == 0) {
-            AppLogger.w(TAG, "handleSeekTo: 当前没有可用(逻辑行)句子，忽略 seek 请求(index=$requestedLineIndex)。")
+            AppLogger.w(
+                TAG,
+                "handleSeekTo: 当前没有可用(逻辑行)句子，忽略 seek 请求(index=$requestedLineIndex)。",
+            )
             return
         }
         val clamped = requestedLineIndex.coerceIn(0, totalLogicalLines - 1)
@@ -864,12 +1087,18 @@ class TtsSynthesizer(
 
         when (currentState) {
             TtsPlaybackState.PLAYING -> {
-                AppLogger.i(TAG, "handleSeekTo: 播放中收到 seek 到逻辑行 #$clamped (物理段=$targetSeg)，立即切换。")
+                AppLogger.i(
+                    TAG,
+                    "handleSeekTo: 播放中收到 seek 到逻辑行 #$clamped (物理段=$targetSeg)，立即切换。",
+                )
                 newSessionScope()
                 synthesisJob?.cancelAndJoin()
                 synthesisJob = null
                 audioPlayer.resetBlocking()
-                AppLogger.d(TAG, "handleSeekTo: 播放中，已取消旧任务并清空队列，准备从物理段 #$targetSeg 重启。")
+                AppLogger.d(
+                    TAG,
+                    "handleSeekTo: 播放中，已取消旧任务并清空队列，准备从物理段 #$targetSeg 重启。",
+                )
 
                 predictedSamplesPerSentence.clear()
                 actualSamplesPerSentence.clear()
@@ -880,7 +1109,10 @@ class TtsSynthesizer(
                 synthesisSentenceIndex = targetSeg
                 playingSentenceIndex = targetSeg
                 startSynthesis()
-                AppLogger.d(TAG, "handleSeekTo: 新的合成任务已从物理段索引 $targetSeg (逻辑行=$clamped) 启动。")
+                AppLogger.d(
+                    TAG,
+                    "handleSeekTo: 新的合成任务已从物理段索引 $targetSeg (逻辑行=$clamped) 启动。",
+                )
                 currentCallback?.onSeekComplete(
                     sentence = lineTexts.getOrNull(clamped) ?: "",
                     sentenceIndex = clamped,
@@ -888,6 +1120,7 @@ class TtsSynthesizer(
                     endPos = lineEndPos.getOrNull(clamped) ?: 0,
                 )
             }
+
             TtsPlaybackState.PAUSED -> {
                 AppLogger.i(TAG, "handleSeekTo: 暂停中收到 seek 到逻辑行 #$clamped，将在恢复时生效。")
                 pendingSeekIndex = clamped
@@ -904,8 +1137,13 @@ class TtsSynthesizer(
                     endPos = lineEndPos.getOrNull(clamped) ?: 0,
                 )
             }
+
             else -> {
-                AppLogger.w(TAG, "handleSeekTo: 当前状态($currentState)不支持立即 seek。建议在 speak 后或恢复/播放中使用。", important = true)
+                AppLogger.w(
+                    TAG,
+                    "handleSeekTo: 当前状态($currentState)不支持立即 seek。建议在 speak 后或恢复/播放中使用。",
+                    important = true,
+                )
             }
         }
     }
@@ -924,102 +1162,134 @@ class TtsSynthesizer(
         resetOnlineCooldown()
         val sessionScope = newSessionScope()
 
-        synthesisJob = sessionScope.launch(Dispatchers.Default) {
-            var synthesisLoopJob: Job? = null
+        synthesisJob =
+            sessionScope.launch(Dispatchers.Default) {
+                var synthesisLoopJob: Job? = null
 
-            fun runSynthesisLoop() {
-                synthesisLoopJob?.cancel()
-                synthesisLoopJob = launchSynthesisLoop()
+                fun runSynthesisLoop() {
+                    synthesisLoopJob?.cancel()
+                    synthesisLoopJob = launchSynthesisLoop()
+                }
+
+                runSynthesisLoop()
             }
-
-            runSynthesisLoop()
-        }
     }
 
-    private fun CoroutineScope.launchSynthesisLoop() = launch {
-        var synthesisFailed = false
-        try {
-            while (coroutineContext.isActive && synthesisSentenceIndex < sentences.size && isSessionActive()) {
-                val index = synthesisSentenceIndex
-                val bag = sentences[index]
-                val sessionStrategy = strategyManager.currentStrategy
+    private fun CoroutineScope.launchSynthesisLoop() =
+        launch {
+            var synthesisFailed = false
+            try {
+                while (coroutineContext.isActive && synthesisSentenceIndex < sentences.size && isSessionActive()) {
+                    val index = synthesisSentenceIndex
+                    val bag = sentences[index]
+                    val sessionStrategy = strategyManager.currentStrategy
 
-                val finalResult = when (sessionStrategy) {
-                    else -> performOfflineSynthesis(index, bag, "离线模式")
-                }
+                    val finalResult =
+                        when (sessionStrategy) {
+                            else -> performOfflineSynthesis(index, bag, "离线模式")
+                        }
 
-                when (finalResult) {
-                    is SynthesisResult.Success,
-                    is SynthesisResult.Skip -> {
-                        AppLogger.d(TAG, "处理合成位置：synthesisSentenceIndex:$synthesisSentenceIndex, index:$index")
-                        if (synthesisSentenceIndex == index) synthesisSentenceIndex++
-                    }
-                    is SynthesisResult.Deferred -> {
-                        AppLogger.i(TAG, "句子 $index 合成被延后（通常因保护期/会话切换），将稍后重试。", important = true)
-                        delay(200)
-                    }
-                    is SynthesisResult.Failure -> {
-                        AppLogger.e(TAG, "句子 $index 合成最终失败 (策略: $sessionStrategy): ${finalResult.reason}")
-                        synthesisFailed = true
-                        break
-                    }
-                    else -> { /* no-op */}
-                }
-            }
-        } catch (_: CancellationException) {
-            AppLogger.d(TAG, "合成循环被取消。")
-        } finally {
-            val stillActive = coroutineContext.isActive && isSessionActive()
-            if (stillActive) {
-                var finalPcm: ShortArray? = null
-                var finalSampleRate: Int? = null
-                processorMutex.withLock {
-                    if (onlineAudioProcessor != null) {
-                        finalPcm = onlineAudioProcessor?.flush()
-                        finalSampleRate = onlineAudioProcessor?.sampleRate
-                        AppLogger.d(TAG, "Flushing audio processor, got ${finalPcm?.size ?: 0} final samples.")
-                    }
-                }
+                    when (finalResult) {
+                        is SynthesisResult.Success,
+                        is SynthesisResult.Skip,
+                        -> {
+                            AppLogger.d(
+                                TAG,
+                                "处理合成位置：synthesisSentenceIndex:$synthesisSentenceIndex, index:$index",
+                            )
+                            if (synthesisSentenceIndex == index) synthesisSentenceIndex++
+                        }
 
-                finalPcm?.takeIf { it.isNotEmpty() && finalSampleRate != null }?.let { pcm ->
-                    val lastIndex = (synthesisSentenceIndex - 1).coerceAtLeast(0)
-                    // 统计最后一块在线样本（用于 EWMA）
-                    actualSamplesPerSentence[lastIndex] = (actualSamplesPerSentence[lastIndex] ?: 0L) + pcm.size
-                    enqueuePcmGuarded(
-                        pcm = pcm,
-                        sampleRate = finalSampleRate!!,
-                        source = SynthesisMode.ONLINE,
-                        sentenceIndex = lastIndex
-                    )
-                    endBufferingIfNeeded(lastIndex)
-                }
+                        is SynthesisResult.Deferred -> {
+                            AppLogger.i(
+                                TAG,
+                                "句子 $index 合成被延后（通常因保护期/会话切换），将稍后重试。",
+                                important = true,
+                            )
+                            delay(200)
+                        }
 
-                if (isSessionActive() && coroutineContext.isActive) {
-                    AppLogger.i(TAG, "合成循环结束(活动会话)。发送EOS。失败标志: $synthesisFailed")
-                    enqueueEndOfStreamGuarded {
-                        if (synthesisFailed) {
-                            isPausedByError = true
-                            sendCommand(Command.Pause)
-                        } else {
-                            AppLogger.i(TAG, "所有句子正常合成完毕，等待播放结束...")
+                        is SynthesisResult.Failure -> {
+                            AppLogger.e(
+                                TAG,
+                                "句子 $index 合成最终失败 (策略: $sessionStrategy): ${finalResult.reason}",
+                            )
+                            synthesisFailed = true
+                            break
+                        }
+
+                        else -> { // no-op
                         }
                     }
                 }
-            } else {
-                AppLogger.i(TAG, "合成循环结束（会话已取消或协程不活跃），跳过 flush/EOS。")
+            } catch (_: CancellationException) {
+                AppLogger.d(TAG, "合成循环被取消。")
+            } finally {
+                val stillActive = coroutineContext.isActive && isSessionActive()
+                if (stillActive) {
+                    var finalPcm: ShortArray? = null
+                    var finalSampleRate: Int? = null
+                    processorMutex.withLock {
+                        if (onlineAudioProcessor != null) {
+                            finalPcm = onlineAudioProcessor?.flush()
+                            finalSampleRate = onlineAudioProcessor?.sampleRate
+                            AppLogger.d(
+                                TAG,
+                                "Flushing audio processor, got ${finalPcm?.size ?: 0} final samples.",
+                            )
+                        }
+                    }
+
+                    finalPcm?.takeIf { it.isNotEmpty() && finalSampleRate != null }?.let { pcm ->
+                        val lastIndex = (synthesisSentenceIndex - 1).coerceAtLeast(0)
+                        // 统计最后一块在线样本（用于 EWMA）
+                        actualSamplesPerSentence[lastIndex] =
+                            (actualSamplesPerSentence[lastIndex] ?: 0L) + pcm.size
+                        enqueuePcmGuarded(
+                            pcm = pcm,
+                            sampleRate = finalSampleRate!!,
+                            source = SynthesisMode.ONLINE,
+                            sentenceIndex = lastIndex,
+                        )
+                        endBufferingIfNeeded(lastIndex)
+                    }
+
+                    if (isSessionActive() && coroutineContext.isActive) {
+                        AppLogger.i(
+                            TAG,
+                            "合成循环结束(活动会话)。发送EOS。失败标志: $synthesisFailed",
+                        )
+                        enqueueEndOfStreamGuarded {
+                            if (synthesisFailed) {
+                                isPausedByError = true
+                                sendCommand(Command.Pause)
+                            } else {
+                                AppLogger.i(TAG, "所有句子正常合成完毕，等待播放结束...")
+                            }
+                        }
+                    }
+                } else {
+                    AppLogger.i(TAG, "合成循环结束（会话已取消或协程不活跃），跳过 flush/EOS。")
+                }
             }
         }
-    }
 
     /**
      * @param index 句子索引
      * @param bag 句子包
      * @param callReason 使用離線的原因描述（僅用於日誌）
      */
-    private suspend fun performOfflineSynthesis(index: Int, bag: TtsBag, callReason: String? = null): SynthesisResult {
+    private suspend fun performOfflineSynthesis(
+        index: Int,
+        bag: TtsBag,
+        callReason: String? = null,
+    ): SynthesisResult {
         if (!coroutineContext.isActive || !isSessionActive()) return SynthesisResult.Deferred
         if (audioPlayer.isInProtection() && index != audioPlayer.getProtectedSentenceIndex()) {
-            AppLogger.i(TAG, "离线合成请求被延后：当前处于保护期，受保护句=${audioPlayer.getProtectedSentenceIndex()}，请求句=$index, groupIndex:${bag.partInGroup}")
+            AppLogger.i(
+                TAG,
+                "离线合成请求被延后：当前处于保护期，受保护句=${audioPlayer.getProtectedSentenceIndex()}，请求句=$index, groupIndex:${bag.partInGroup}",
+            )
             return SynthesisResult.Deferred
         }
 
@@ -1034,41 +1304,68 @@ class TtsSynthesizer(
                 if (trimmed.isOnlyPunctuationOrEmpty()) {
                     AppLogger.w(
                         TAG,
-                        msg = """
+                        msg =
+                            """
                             ┌ ----------------------------
                             | 合成[离线]句子无有效内容，跳过合成
                             | bag: $bag, 
                             | 实际文本: "$trimmed"
                             └ ----------------------------
-                        """.trimIndent(),
-                        important = true
+                            """.trimIndent(),
+                        important = true,
                     )
-                    enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_START, SynthesisMode.OFFLINE) {
-                        if (isSessionActive()) sendCommand(Command.InternalSentenceStart(index, sentence, SynthesisMode.OFFLINE, bag.start, bag.end))
+                    enqueueMarkerGuarded(
+                        index,
+                        AudioPlayer.MarkerType.SENTENCE_START,
+                        SynthesisMode.OFFLINE,
+                    ) {
+                        if (isSessionActive()) {
+                            sendCommand(
+                                Command.InternalSentenceStart(
+                                    index,
+                                    sentence,
+                                    SynthesisMode.OFFLINE,
+                                    bag.start,
+                                    bag.end,
+                                ),
+                            )
+                        }
                     }
-                    enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_END, SynthesisMode.OFFLINE) {
-                        if (isSessionActive()) sendCommand(Command.InternalSentenceEnd(index, sentence))
+                    enqueueMarkerGuarded(
+                        index,
+                        AudioPlayer.MarkerType.SENTENCE_END,
+                        SynthesisMode.OFFLINE,
+                    ) {
+                        if (isSessionActive()) {
+                            sendCommand(
+                                Command.InternalSentenceEnd(
+                                    index,
+                                    sentence,
+                                ),
+                            )
+                        }
                     }
                     return@withLock SynthesisResult.Success
                 }
                 AppLogger.d(
                     TAG,
                     """
-                        ┌ ----------------------------
-                        | 合成[离线]句子开始
-                        | bag: $bag, 
-                        | 实际文本: "$trimmed"
-                        └ ----------------------------
+                    ┌ ----------------------------
+                    | 合成[离线]句子开始
+                    | bag: $bag, 
+                    | 实际文本: "$trimmed"
+                    └ ----------------------------
                     """.trimIndent(),
-                    important = true
+                    important = true,
                 )
 
-                val predicted = predictTotalSamplesScaled(
-                    text = trimmed,
-                    sampleRate = TtsConstants.DEFAULT_SAMPLE_RATE,
-                    speed = currentSpeed,
-                    preferOnline = false
-                )
+                val predicted =
+                    predictTotalSamplesScaled(
+                        text = trimmed,
+                        sampleRate = TtsConstants.DEFAULT_SAMPLE_RATE,
+                        speed = currentSpeed,
+                        preferOnline = false,
+                    )
                 predictedSamplesPerSentence[index] = predicted
                 bucketKeyPerSentence[index] = currentBucketKey()
                 sourcePerSentence[index] = SynthesisMode.OFFLINE
@@ -1077,20 +1374,21 @@ class TtsSynthesizer(
 
                 val prepare = prepareForSynthesis(trimmed, currentSpeed, currentVolume)
                 if (prepare != 0) {
-                    val reason = """
+                    val reason =
+                        """
                         ┌ ----------------------------
                         | 合成[离线]句子准备失败（按成功跳过处理，避免打断整体流程）
                         | bag: $bag, 
                         | 实际文本: "$trimmed"
                         | 准备状态码: $prepare
                         └ ----------------------------
-                    """.trimIndent()
+                        """.trimIndent()
                     AppLogger.e(TAG, reason, important = true)
                     currentCallback?.onSynthesisError(
                         mode = SynthesisMode.OFFLINE,
                         errorCode = prepare,
                         errorMessage = "离线prepare失败",
-                        sentence = trimmed
+                        sentence = trimmed,
                     )
                     return@withLock SynthesisResult.Success
                 }
@@ -1104,96 +1402,134 @@ class TtsSynthesizer(
                                 SynthesisMode.OFFLINE,
                                 bag.start,
                                 bag.end,
-                                triggerReason = callReason
-                            )
+                                triggerReason = callReason,
+                            ),
                         )
                     }
                 }
-                val endCb = { if (isSessionActive()) sendCommand(Command.InternalSentenceEnd(index, trimmed)) }
+                val endCb = {
+                    if (isSessionActive()) {
+                        sendCommand(
+                            Command.InternalSentenceEnd(
+                                index,
+                                trimmed,
+                            ),
+                        )
+                    }
+                }
 
                 val synthResult = IntArray(1)
                 val pcmArray = pcmBuffer.array()
                 var hasStart = false
                 while (coroutineContext.isActive && isSessionActive()) {
                     if (audioPlayer.isInProtection() && index != audioPlayer.getProtectedSentenceIndex()) {
-                        AppLogger.i(TAG, "离线合成过程中进入/仍在保护期，句子 $bag 延后（Deferred）。", important = true)
+                        AppLogger.i(
+                            TAG,
+                            "离线合成过程中进入/仍在保护期，句子 $bag 延后（Deferred）。",
+                            important = true,
+                        )
                         return@withLock SynthesisResult.Deferred
                     }
 
-                    val status = nativeEngine?.synthesize(pcmArray, TtsConstants.PCM_BUFFER_SIZE, synthResult, 1) ?: -1
+                    val status =
+                        nativeEngine?.synthesize(
+                            pcmArray,
+                            TtsConstants.PCM_BUFFER_SIZE,
+                            synthResult,
+                            1,
+                        ) ?: -1
                     if (status == -1) {
                         currentCallback?.onSynthesisError(
                             mode = SynthesisMode.OFFLINE,
                             errorMessage = "离线synthesize失败",
                             errorCode = status,
-                            sentence = trimmed
+                            sentence = trimmed,
                         )
-                        val reason = """
+                        val reason =
+                            """
                             ┌ ----------------------------
                             | 合成[离线]句子合成失败
                             | bag: $bag, 
                             | 实际文本: "$trimmed"
                             | 状态码: $status
                             └ ----------------------------
-                        """.trimIndent()
+                            """.trimIndent()
                         AppLogger.e(TAG, reason, important = true)
                         return@withLock SynthesisResult.Success
                     }
                     val num = synthResult[0]
                     if (num <= 0) break
                     if (!hasStart) {
-                        enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_START, SynthesisMode.OFFLINE, startCb)
+                        enqueueMarkerGuarded(
+                            index,
+                            AudioPlayer.MarkerType.SENTENCE_START,
+                            SynthesisMode.OFFLINE,
+                            startCb,
+                        )
                         hasStart = true
                     }
                     val valid = num.coerceAtMost(pcmArray.size)
                     if (valid > 0) {
                         val chunk = pcmArray.copyOf(valid)
                         // 统计离线入队样本（用于 EWMA）
-                        actualSamplesPerSentence[index] = (actualSamplesPerSentence[index] ?: 0L) + chunk.size
+                        actualSamplesPerSentence[index] =
+                            (actualSamplesPerSentence[index] ?: 0L) + chunk.size
                         // 句中动态抬分母（渐进式）
                         maybeBoostPredictedInFlight(index, TtsConstants.DEFAULT_SAMPLE_RATE)
                         enqueuePcmGuarded(
                             pcm = chunk,
                             sampleRate = TtsConstants.DEFAULT_SAMPLE_RATE,
                             source = SynthesisMode.OFFLINE,
-                            sentenceIndex = index
+                            sentenceIndex = index,
                         )
                         endBufferingIfNeeded(index)
                     }
                     delay(1)
                 }
-                val msg = """
+                val msg =
+                    """
                     ┌ ----------------------------
                     | 合成[离线]句子完成
                     | bag: $bag, 
                     | 实际文本: "$trimmed"
                     └ ----------------------------
-                """.trimIndent()
+                    """.trimIndent()
                 AppLogger.d(TAG, msg, important = true)
                 if (coroutineContext.isActive && isSessionActive()) {
                     if (!hasStart) {
-                        enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_START, SynthesisMode.OFFLINE, startCb)
+                        enqueueMarkerGuarded(
+                            index,
+                            AudioPlayer.MarkerType.SENTENCE_START,
+                            SynthesisMode.OFFLINE,
+                            startCb,
+                        )
                     }
-                    enqueueMarkerGuarded(index, AudioPlayer.MarkerType.SENTENCE_END, SynthesisMode.OFFLINE, endCb)
+                    enqueueMarkerGuarded(
+                        index,
+                        AudioPlayer.MarkerType.SENTENCE_END,
+                        SynthesisMode.OFFLINE,
+                        endCb,
+                    )
                 }
                 SynthesisResult.Success
             } catch (e: CancellationException) {
                 SynthesisResult.Failure("合成[离线](句子 $bag, ${sentence.trim()})协程被取消")
             } catch (e: Exception) {
-                val reason = """
+                val reason =
+                    """
                     ┌ ----------------------------
                     | 合成[离线]句子异常
                     | bag: $bag,
                     | 实际文本: "$trimmed"
                     | 异常信息: ${e.message}
                     └ ----------------------------
-                """.trimIndent()
+                    """.trimIndent()
                 AppLogger.e(TAG, reason, e, important = true)
                 currentCallback?.onSynthesisError(
                     mode = SynthesisMode.OFFLINE,
                     errorMessage = e.message,
                     errorCode = -1,
-                    sentence = trimmed
+                    sentence = trimmed,
                 )
                 SynthesisResult.Failure(reason)
             } finally {
@@ -1204,16 +1540,20 @@ class TtsSynthesizer(
 
     private fun processTextForTts(input: String): String {
         var text = input.trim().processForTts()
-        text = if (isTtsTextTraditional) {
-            if (AppLogger.consoleEnabled) {
-                val after = TraditionalTtsNormalizer.process(input, true)
-                AppLogger.d(TAG, "Traditional TTS Normalization: \n原文: $input\n规范后: $after")
+        text =
+            if (isTtsTextTraditional) {
+                if (AppLogger.consoleEnabled) {
+                    val after = TraditionalTtsNormalizer.process(input, true)
+                    AppLogger.d(
+                        TAG,
+                        "Traditional TTS Normalization: \n原文: $input\n规范后: $after",
+                    )
+                }
+                TraditionalTtsNormalizer.process(text)
+            } else {
+                // SimplifiedTtsNormalizer.process(text)
+                text
             }
-            TraditionalTtsNormalizer.process(text)
-        } else {
-            //SimplifiedTtsNormalizer.process(text)
-            text
-        }
         return text
     }
 
@@ -1222,7 +1562,7 @@ class TtsSynthesizer(
         pcm: ShortArray,
         sampleRate: Int,
         source: SynthesisMode,
-        sentenceIndex: Int
+        sentenceIndex: Int,
     ) {
         if (!isSessionActive() || !coroutineContext.isActive) return
         audioPlayer.enqueuePcm(
@@ -1231,7 +1571,7 @@ class TtsSynthesizer(
             length = pcm.size,
             sampleRate = sampleRate,
             source = source,
-            sentenceIndex = sentenceIndex
+            sentenceIndex = sentenceIndex,
         )
     }
 
@@ -1239,7 +1579,7 @@ class TtsSynthesizer(
         sentenceIndex: Int,
         type: AudioPlayer.MarkerType,
         source: SynthesisMode,
-        onReached: (() -> Unit)? = null
+        onReached: (() -> Unit)? = null,
     ) {
         if (!isSessionActive() || !coroutineContext.isActive) return
         audioPlayer.enqueueMarker(sentenceIndex, type, source, onReached)
@@ -1250,7 +1590,11 @@ class TtsSynthesizer(
         audioPlayer.enqueueEndOfStream(onDrained)
     }
 
-    private fun prepareForSynthesis(text: String, speed: Float, volume: Float): Int {
+    private fun prepareForSynthesis(
+        text: String,
+        speed: Float,
+        volume: Float,
+    ): Int {
         synchronized(this) {
             if (currentSpeaker.offlineModelName != currentVoiceCode) {
                 currentVoiceCode = currentSpeaker.offlineModelName
@@ -1284,66 +1628,72 @@ class TtsSynthesizer(
 
     private fun startCharacterProgressLoop() {
         if (characterProgressJob?.isActive == true) return
-        characterProgressJob = appScope.launch(Dispatchers.Default) {
-            var lastLine = -1
-            var lastCharIdxInLine = -1
-            while (isActive && currentState == TtsPlaybackState.PLAYING) {
-                val progress = audioPlayer.getCurrentSentenceProgress()
-                if (progress != null) {
-                    val segmentIdx = progress.sentenceIndex
-                    val bag = sentences.getOrNull(segmentIdx) ?: continue
-                    val lineId = segmentToLine.getOrNull(segmentIdx) ?: bag.originalGroupId
-                    val fullLineText = lineTexts.getOrNull(lineId) ?: bag.text
-                    val charCount = fullLineText.length
-                    if (charCount > 0) {
-                        val rawFrac = progress.fraction.coerceIn(0f, 1f)
-                        // 物理段切换时重置平滑状态
-                        val frac = if (segmentIdx != mapSmoothLastSentence) {
-                            mapSmoothLastSentence = segmentIdx
-                            mapSmoothFrac = rawFrac
-                            rawFrac
+        characterProgressJob =
+            appScope.launch(Dispatchers.Default) {
+                var lastLine = -1
+                var lastCharIdxInLine = -1
+                while (isActive && currentState == TtsPlaybackState.PLAYING) {
+                    val progress = audioPlayer.getCurrentSentenceProgress()
+                    if (progress != null) {
+                        val segmentIdx = progress.sentenceIndex
+                        val bag = sentences.getOrNull(segmentIdx) ?: continue
+                        val lineId = segmentToLine.getOrNull(segmentIdx) ?: bag.originalGroupId
+                        val fullLineText = lineTexts.getOrNull(lineId) ?: bag.text
+                        val charCount = fullLineText.length
+                        if (charCount > 0) {
+                            val rawFrac = progress.fraction.coerceIn(0f, 1f)
+                            // 物理段切换时重置平滑状态
+                            val frac =
+                                if (segmentIdx != mapSmoothLastSentence) {
+                                    mapSmoothLastSentence = segmentIdx
+                                    mapSmoothFrac = rawFrac
+                                    rawFrac
+                                } else {
+                                    mapSmoothFrac =
+                                        mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
+                                    mapSmoothFrac
+                                }
+
+                            // 当前物理段内部字符索引（估算）
+                            val segLocalIndex = mapFractionToWeightedIndex(bag.text, frac)
+                            // 行内偏移 = 段起始相对行起始 + 段内索引
+                            val baseOffsetInLine = bag.start - bag.groupStart
+                            val lineCharIndex =
+                                (baseOffsetInLine + segLocalIndex)
+                                    .coerceAtMost(charCount - 1)
+                                    .coerceAtLeast(0)
+
+                            if (lineId != lastLine || lineCharIndex != lastCharIdxInLine) {
+                                currentCallback?.onSentenceProgressChanged(
+                                    sentenceIndex = lineId,
+                                    sentence = fullLineText,
+                                    progress = lineCharIndex,
+                                    char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
+                                    startPos = bag.groupStart,
+                                    endPos = bag.groupEnd,
+                                )
+                                lastLine = lineId
+                                lastCharIdxInLine = lineCharIndex
+                            }
                         } else {
-                            mapSmoothFrac = mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
-                            mapSmoothFrac
-                        }
-
-                        // 当前物理段内部字符索引（估算）
-                        val segLocalIndex = mapFractionToWeightedIndex(bag.text, frac)
-                        // 行内偏移 = 段起始相对行起始 + 段内索引
-                        val baseOffsetInLine = bag.start - bag.groupStart
-                        val lineCharIndex = (baseOffsetInLine + segLocalIndex).coerceAtMost(charCount - 1).coerceAtLeast(0)
-
-                        if (lineId != lastLine || lineCharIndex != lastCharIdxInLine) {
-                            currentCallback?.onSentenceProgressChanged(
-                                sentenceIndex = lineId,
-                                sentence = fullLineText,
-                                progress = lineCharIndex,
-                                char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
-                                startPos = bag.groupStart,
-                                endPos = bag.groupEnd
-                            )
-                            lastLine = lineId
-                            lastCharIdxInLine = lineCharIndex
-                        }
-                    } else {
-                        // 空行：固定回调 0
-                        if (lineId != lastLine || lastCharIdxInLine != 0) {
-                            currentCallback?.onSentenceProgressChanged(
-                                sentenceIndex = lineId,
-                                sentence = "",
-                                progress = 0,
-                                char = "",
-                                startPos = bag.groupStart,
-                                endPos = bag.groupEnd
-                            )
-                            lastLine = lineId
-                            lastCharIdxInLine = 0
+                            // 空行：固定回调 0
+                            if (lineId != lastLine || lastCharIdxInLine != 0) {
+                                currentCallback?.onSentenceProgressChanged(
+                                    sentenceIndex = lineId,
+                                    sentence = "",
+                                    progress = 0,
+                                    char = "",
+                                    startPos = bag.groupStart,
+                                    endPos = bag.groupEnd,
+                                )
+                                lastLine = lineId
+                                lastCharIdxInLine = 0
+                            }
                         }
                     }
+                    delay(CHAR_PROGRESS_INTERVAL_MS)
                 }
-                delay(CHAR_PROGRESS_INTERVAL_MS)
             }
-        }
     }
 
     private fun stopCharacterProgressLoop() {
@@ -1356,7 +1706,10 @@ class TtsSynthesizer(
      * 将播放比例映射到字符索引：对标点/停顿加权，缓解“线性比例”的系统性误差（离线更明显）。
      * 可按需要微调各类字符的权重。
      */
-    private fun mapFractionToWeightedIndex(text: String, fraction: Float): Int {
+    private fun mapFractionToWeightedIndex(
+        text: String,
+        fraction: Float,
+    ): Int {
         if (text.isEmpty()) return 0
 
         // 基础权重（保留现有规则）
@@ -1365,11 +1718,12 @@ class TtsSynthesizer(
         // —— 新增：标点邻域权重扩散（避免到标点处一下子跳太多） —— //
         for (i in text.indices) {
             val c = text[i]
-            val extra = when {
-                c in charArrayOf('，','、','；','：',',',';') -> PUNC_EXTRA_SMALL
-                c in charArrayOf('。','！','？','!','?','…') -> PUNC_EXTRA_BIG
-                else -> 0f
-            }
+            val extra =
+                when {
+                    c in charArrayOf('，', '、', '；', '：', ',', ';') -> PUNC_EXTRA_SMALL
+                    c in charArrayOf('。', '！', '？', '!', '?', '…') -> PUNC_EXTRA_BIG
+                    else -> 0f
+                }
             if (extra > 0f) {
                 // 将额外权重按核 [-2..+2] 分配到标点及其邻居
                 for (k in -2..2) {
@@ -1391,16 +1745,15 @@ class TtsSynthesizer(
         return text.lastIndex
     }
 
-    private fun charWeight(c: Char): Float {
-        return when {
+    private fun charWeight(c: Char): Float =
+        when {
             c == ' ' || c == '\t' || c == '\u3000' -> 0.4f
-            c in charArrayOf('，','、','；','：',',',';') -> 1.5f
-            c in charArrayOf('。','！','？','!','?') -> 2.0f
+            c in charArrayOf('，', '、', '；', '：', ',', ';') -> 1.5f
+            c in charArrayOf('。', '！', '？', '!', '?') -> 2.0f
             c == '—' || c == '-' -> 1.2f
             c.isDigit() || c.isLetter() -> 1.1f
             else -> 1.0f
         }
-    }
 
     private fun activateOnlineCooldown() {
         onlineFailureCount++
@@ -1422,7 +1775,10 @@ class TtsSynthesizer(
 
     fun clearCache() {
         if (currentState != TtsPlaybackState.IDLE) {
-            AppLogger.w(TAG, "clearCache: 当前状态非 IDLE，清理缓存可能影响正在进行的合成任务。停止后再操作")
+            AppLogger.w(
+                TAG,
+                "clearCache: 当前状态非 IDLE，清理缓存可能影响正在进行的合成任务。停止后再操作",
+            )
             Toast.makeText(context, "请在停止合成后再清理缓存", Toast.LENGTH_SHORT).show()
             return
         }
@@ -1441,15 +1797,22 @@ class TtsSynthesizer(
         val midBoostRatio: Float,
         val midBoostMult: Float,
         val midBoostStepMs: Float,
-        val midBoostMinMs: Float
+        val midBoostMinMs: Float,
     )
 
-    private fun speedCompress(value: Float, speed: Float, pow: Float): Float {
+    private fun speedCompress(
+        value: Float,
+        speed: Float,
+        pow: Float,
+    ): Float {
         val s = speed.coerceIn(0.5f, 3.0f)
         return value / s.pow(pow)
     }
 
-    private fun lowBoost(s: Float, max: Float): Float {
+    private fun lowBoost(
+        s: Float,
+        max: Float,
+    ): Float {
         if (s >= 1f) return 0f
         val t = (1f - s).pow(LOW_BOOST_POW)
         return max * t
@@ -1457,47 +1820,69 @@ class TtsSynthesizer(
 
     private fun buildPredProfile(speed: Float): PredProfile {
         val s = speed.coerceIn(0.5f, 3.0f)
-        var unit    = speedCompress(BASE_UNIT_MS,      s, POW_UNIT)
+        var unit = speedCompress(BASE_UNIT_MS, s, POW_UNIT)
         var intercept = speedCompress(BASE_INTERCEPT_MS, s, POW_INTERCEPT)
-        var minMs   = speedCompress(BASE_MIN_MS,      s, POW_MIN)
-        var comma   = speedCompress(BASE_COMMA_MS,    s, POW_COMMA)
-        var period  = speedCompress(BASE_PERIOD_MS,   s, POW_PERIOD)
+        var minMs = speedCompress(BASE_MIN_MS, s, POW_MIN)
+        var comma = speedCompress(BASE_COMMA_MS, s, POW_COMMA)
+        var period = speedCompress(BASE_PERIOD_MS, s, POW_PERIOD)
 
         var rawScale = speedCompress(DEFAULT_INIT_SCALE_BASE, s, POW_SCALE)
 
         // 低速附加放大（仅 s<1.0 生效）
-        unit     *= (1f + lowBoost(s, LOW_BOOST_UNIT_MAX))
-        intercept*= (1f + lowBoost(s, LOW_BOOST_INTERCEPT_MAX))
-        minMs    *= (1f + lowBoost(s, LOW_BOOST_MIN_MAX))
-        comma    *= (1f + lowBoost(s, LOW_BOOST_COMMA_MAX))
-        period   *= (1f + lowBoost(s, LOW_BOOST_PERIOD_MAX))
+        unit *= (1f + lowBoost(s, LOW_BOOST_UNIT_MAX))
+        intercept *= (1f + lowBoost(s, LOW_BOOST_INTERCEPT_MAX))
+        minMs *= (1f + lowBoost(s, LOW_BOOST_MIN_MAX))
+        comma *= (1f + lowBoost(s, LOW_BOOST_COMMA_MAX))
+        period *= (1f + lowBoost(s, LOW_BOOST_PERIOD_MAX))
         rawScale *= (1f + lowBoost(s, LOW_BOOST_SCALE_MAX))
 
         // 高速时降低整体比例的下限，避免被冷启动比例拖慢
-        val minScale = when {
-            s >= 1.8f -> 1.05f
-            s >= 1.5f -> 1.08f
-            s >= 1.3f -> 1.10f
-            else      -> 1.15f
-        }
+        val minScale =
+            when {
+                s >= 1.8f -> 1.05f
+                s >= 1.5f -> 1.08f
+                s >= 1.3f -> 1.10f
+                else -> 1.15f
+            }
         val scaleClamped = rawScale.coerceIn(minScale, 1.40f)
 
         val midRatio = (MID_BOOST_RATIO_BASE + (s - 1f) * 0.01f).coerceIn(1.03f, 1.08f)
-        val midMult  = (MID_BOOST_MULT_BASE - (s - 1f) * 0.02f).coerceIn(1.12f, MID_BOOST_MULT_BASE)
-        val midStep  = (MID_BOOST_STEP_MS_BASE - (s - 1f) * 30f).coerceIn(180f, MID_BOOST_STEP_MS_BASE)
-        val midMin   = (MID_BOOST_MIN_MS_BASE - (s - 1f) * 40f).coerceIn(380f, MID_BOOST_MIN_MS_BASE)
+        val midMult = (MID_BOOST_MULT_BASE - (s - 1f) * 0.02f).coerceIn(1.12f, MID_BOOST_MULT_BASE)
+        val midStep =
+            (MID_BOOST_STEP_MS_BASE - (s - 1f) * 30f).coerceIn(180f, MID_BOOST_STEP_MS_BASE)
+        val midMin = (MID_BOOST_MIN_MS_BASE - (s - 1f) * 40f).coerceIn(380f, MID_BOOST_MIN_MS_BASE)
 
-        return PredProfile(unit, intercept, minMs, comma, period, scaleClamped, midRatio, midMult, midStep, midMin)
+        return PredProfile(
+            unit,
+            intercept,
+            minMs,
+            comma,
+            period,
+            scaleClamped,
+            midRatio,
+            midMult,
+            midStep,
+            midMin,
+        )
     }
 
-    private fun predictTotalSamplesScaled(text: String, sampleRate: Int, speed: Float, preferOnline: Boolean): Long {
+    private fun predictTotalSamplesScaled(
+        text: String,
+        sampleRate: Int,
+        speed: Float,
+        preferOnline: Boolean,
+    ): Long {
         val raw = predictTotalSamplesRaw(text, sampleRate, speed)
         val profile = buildPredProfile(speed)
         val scaled = (raw.toDouble() * profile.scaleFactor.toDouble()).toLong()
         return scaled.coerceAtLeast(1L)
     }
 
-    private fun predictTotalSamplesRaw(text: String, sampleRate: Int, speed: Float): Long {
+    private fun predictTotalSamplesRaw(
+        text: String,
+        sampleRate: Int,
+        speed: Float,
+    ): Long {
         val trimmed = text.trim()
         val profile = buildPredProfile(speed)
         if (trimmed.isEmpty()) {
@@ -1510,10 +1895,21 @@ class TtsSynthesizer(
         while (i < trimmed.length) {
             val c = trimmed[i]
             when {
-                c == ' ' || c == '\t' || c == '\u3000' -> sumW += 0.2f
-                c in charArrayOf('，','、','；','：',',',';') -> { commaCnt++; sumW += 0.4f }
+                c == ' ' || c == '\t' || c == '\u3000' -> {
+                    sumW += 0.2f
+                }
+
+                c in charArrayOf('，', '、', '；', '：', ',', ';') -> {
+                    commaCnt++
+                    sumW += 0.4f
+                }
+
                 // 将“……”或“...”合并为一次句末停顿
-                c == '。' || c == '！' || c == '？' || c == '!' || c == '?' -> { periodCnt++; sumW += 0.6f }
+                c == '。' || c == '！' || c == '？' || c == '!' || c == '?' -> {
+                    periodCnt++
+                    sumW += 0.6f
+                }
+
                 c == '…' -> {
                     var j = i + 1
                     while (j < trimmed.length && trimmed[j] == '…') j++
@@ -1521,19 +1917,39 @@ class TtsSynthesizer(
                     sumW += 0.8f
                     i = j - 1
                 }
+
                 c == '.' -> {
-                    var j = i + 1; var dots = 1
-                    while (j < trimmed.length && trimmed[j] == '.') { dots++; j++ }
-                    if (dots >= 3) { periodCnt += 1; sumW += 0.8f; i = j - 1 }
-                    else sumW += 0.5f
+                    var j = i + 1
+                    var dots = 1
+                    while (j < trimmed.length && trimmed[j] == '.') {
+                        dots++
+                        j++
+                    }
+                    if (dots >= 3) {
+                        periodCnt += 1
+                        sumW += 0.8f
+                        i = j - 1
+                    } else {
+                        sumW += 0.5f
+                    }
                 }
-                c.isDigit() -> sumW += 0.8f
-                c.isLetter() -> sumW += 0.6f
-                else -> sumW += 1.0f // 汉字/CJK
+
+                c.isDigit() -> {
+                    sumW += 0.8f
+                }
+
+                c.isLetter() -> {
+                    sumW += 0.6f
+                }
+
+                else -> {
+                    sumW += 1.0f
+                } // 汉字/CJK
             }
             i++
         }
-        var estMs = profile.interceptMs +
+        var estMs =
+            profile.interceptMs +
                 profile.unitMs * sumW +
                 commaCnt * profile.commaMs +
                 periodCnt * profile.periodMs
@@ -1556,27 +1972,40 @@ class TtsSynthesizer(
     private fun loadScaleOverall(bucket: String): Float? {
         scaleOverallByBucket[bucket]?.let { return it }
         val v = ewmaPrefs.getFloat("scale_overall_$bucket", Float.NaN)
-        return if (v.isNaN()) null else {
+        return if (v.isNaN()) {
+            null
+        } else {
             val c = v.coerceIn(SCALE_MIN, SCALE_MAX)
             scaleOverallByBucket[bucket] = c
             c
         }
     }
-    private fun saveScaleOverall(bucket: String, value: Float) {
+
+    private fun saveScaleOverall(
+        bucket: String,
+        value: Float,
+    ) {
         scaleOverallByBucket[bucket] = value
-        ewmaPrefs.edit { putFloat("scale_overall_$bucket", value)}
+        ewmaPrefs.edit { putFloat("scale_overall_$bucket", value) }
     }
 
     private fun loadCountOverall(bucket: String): Int? {
         val v = ewmaPrefs.getInt("scale_overall_cnt_$bucket", -1)
         return if (v < 0) null else v
     }
-    private fun saveCountOverall(bucket: String, value: Int) {
+
+    private fun saveCountOverall(
+        bucket: String,
+        value: Int,
+    ) {
         countOverallByBucket[bucket] = value
         ewmaPrefs.edit { putInt("scale_overall_cnt_$bucket", value) }
     }
 
-    private fun maybeBoostPredictedInFlight(index: Int, sampleRate: Int) {
+    private fun maybeBoostPredictedInFlight(
+        index: Int,
+        sampleRate: Int,
+    ) {
         val actual = actualSamplesPerSentence[index] ?: return
         val predicted = predictedSamplesPerSentence[index] ?: return
         val profile = buildPredProfile(currentSpeed)
@@ -1593,7 +2022,10 @@ class TtsSynthesizer(
         }
     }
 
-    private fun onSentenceFinishedForEwma(index: Int, sentence: String) {
+    private fun onSentenceFinishedForEwma(
+        index: Int,
+        sentence: String,
+    ) {
         val predicted = predictedSamplesPerSentence.remove(index)
         val actual = actualSamplesPerSentence.remove(index)
         val bucket = bucketKeyPerSentence.remove(index)
@@ -1611,7 +2043,11 @@ class TtsSynthesizer(
         val overallCnt = (countOverallByBucket[bucket] ?: loadCountOverall(bucket) ?: 0)
 
         val alphaOverall = ALPHA_OFFLINE
-        val newOverall = ((1f - alphaOverall) * overallBase + alphaOverall * ratio).coerceIn(SCALE_MIN, SCALE_MAX)
+        val newOverall =
+            ((1f - alphaOverall) * overallBase + alphaOverall * ratio).coerceIn(
+                SCALE_MIN,
+                SCALE_MAX,
+            )
         scaleOverallByBucket[bucket] = newOverall
         saveScaleOverall(bucket, newOverall)
         val newOverallCnt = overallCnt + 1
@@ -1623,15 +2059,15 @@ class TtsSynthesizer(
     private fun scheduleBufferingIfNeeded(index: Int) {
         bufferingJob?.cancel()
         bufferingSentenceIndex = index
-        bufferingJob = appScope.launch(Dispatchers.Default) {
-            delay(LOADING_DEBOUNCE_MS)
-            if (!isSessionActive()) return@launch
-            if (currentState == TtsPlaybackState.PLAYING && bufferingSentenceIndex == index) {
-                updateState(TtsPlaybackState.BUFFERING)
+        bufferingJob =
+            appScope.launch(Dispatchers.Default) {
+                delay(LOADING_DEBOUNCE_MS)
+                if (!isSessionActive()) return@launch
+                if (currentState == TtsPlaybackState.PLAYING && bufferingSentenceIndex == index) {
+                    updateState(TtsPlaybackState.BUFFERING)
+                }
             }
-        }
     }
-
 
     private fun endBufferingIfNeeded(index: Int) {
         val target = bufferingSentenceIndex
