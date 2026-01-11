@@ -387,6 +387,9 @@ class AudioPlayer(
                                     if (audioTrack == null || item.sampleRate != currentSampleRate) {
                                         switchSampleRate(item.sampleRate)
                                     }
+                                    if (audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                                        audioTrack?.play()
+                                    }
                                     if (currentPlaybackSource != item.source || audioTrack?.sampleRate != item.sampleRate) {
                                         currentPlaybackSource = item.source
                                         AppLogger.i(
