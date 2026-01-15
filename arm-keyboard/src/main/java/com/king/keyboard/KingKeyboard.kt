@@ -127,7 +127,7 @@ open class KingKeyboard : LifecycleEventObserver {
     /**
      * SparseArray存储 EditText,SparseArray 的key为 EditText的 ID，value为 EditText
      */
-    private val editTextArray by lazy {
+    val editTextArray by lazy {
         SparseArray<EditText>()
     }
 
@@ -553,8 +553,6 @@ open class KingKeyboard : LifecycleEventObserver {
      * return 返回当前键盘输入法类型
      */
     fun getKeyboardType(): Int = keyboardType
-
-    fun getEditTextArray(): SparseArray<EditText> = editTextArray
 
     /**
      * 执行当获View获取焦点时的一些逻辑，如：显示键盘
