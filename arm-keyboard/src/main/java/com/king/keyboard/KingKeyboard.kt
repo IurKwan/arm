@@ -56,23 +56,9 @@ open class KingKeyboard : LifecycleEventObserver {
     private val keyboardNormal by lazy {
         Keyboard(context, R.xml.king_keyboard_normal)
     }
-    private val keyboardNormalModeChange by lazy {
-        Keyboard(context, R.xml.king_keyboard_normal_mode_change)
-    }
-    private val keyboardNormalMore by lazy {
-        Keyboard(context, R.xml.king_keyboard_normal_more_symbol)
-    }
 
     private val keyboardLetter by lazy {
         Keyboard(context, R.xml.king_keyboard_letter)
-    }
-
-    private val keyboardLowercaseLetter by lazy {
-        Keyboard(context, R.xml.king_keyboard_lowercase_letter_only)
-    }
-
-    private val keyboardUppercaseLetter by lazy {
-        Keyboard(context, R.xml.king_keyboard_uppercase_letter_only)
     }
 
     private val keyboardLetterNumber by lazy {
