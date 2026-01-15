@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.iur.arm.tts"
+    namespace = "io.github.iur.arm.keyboard"
     compileSdk = 36
 
     defaultConfig {
@@ -34,15 +34,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    sourceSets["main"].jniLibs.srcDir("libs")
 }
 
 dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation(libs.okhttp)
-    implementation(libs.androidx.core.ktx)
     // kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
@@ -78,8 +77,8 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
-            artifactId = "arm-tts"
-            version = "1.0.6"
+            artifactId = "arm-keyboard"
+            version = "1.0.0"
 
             afterEvaluate {
                 from(components["release"])
@@ -120,3 +119,4 @@ publishing {
         }
     }
 }
+
