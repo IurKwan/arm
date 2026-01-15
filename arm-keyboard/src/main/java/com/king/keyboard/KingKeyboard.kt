@@ -80,11 +80,19 @@ open class KingKeyboard : LifecycleEventObserver {
     }
 
     private val keyboardNumber by lazy {
-        Keyboard(context, R.xml.king_keyboard_number)
+        Keyboard(context, R.xml.king_keyboard_number).apply {
+            keys?.find { it.codes[0] == KEYCODE_CANCEL }?.let {
+                it.y -= dp2px(36f)
+            }
+        }
     }
 
     private val keyboardNumberDecimal by lazy {
-        Keyboard(context, R.xml.king_keyboard_number_decimal)
+        Keyboard(context, R.xml.king_keyboard_number_decimal).apply {
+            keys?.find { it.codes[0] == KEYCODE_CANCEL }?.let {
+                it.y -= dp2px(36f)
+            }
+        }
     }
 
     private val keyboardPhone by lazy {

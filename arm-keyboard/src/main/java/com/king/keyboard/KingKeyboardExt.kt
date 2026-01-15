@@ -3,6 +3,7 @@
 package com.king.keyboard
 
 import android.content.Context
+import android.content.res.Resources
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 
@@ -34,3 +35,8 @@ var View.isVisible: Boolean
     set(value) {
         visibility = if (value) View.VISIBLE else View.GONE
     }
+
+fun dp2px(dpValue: Float): Int {
+    val scale = Resources.getSystem().displayMetrics.density
+    return (dpValue * scale + 0.5f).toInt()
+}
