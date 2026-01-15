@@ -824,21 +824,6 @@ open class KingKeyboard : LifecycleEventObserver {
             KeyboardType.NUMBER_DECIMAL -> {
                 currentKeyboard = keyboardNumberDecimal
             }
-
-            // 当自定义了键盘，但没有自定义相关布局时，使用默认键盘keyboardNormal
-            KeyboardType.CUSTOM -> {
-                currentKeyboard = keyboardCustom ?: keyboardNormal
-            }
-
-            // 当自定义了键盘，但没有自定义相关布局时，使用默认键盘keyboardNormalModeChange
-            KeyboardType.CUSTOM_MODE_CHANGE -> {
-                currentKeyboard = keyboardCustomModeChange ?: keyboardNormalModeChange
-            }
-
-            // 当自定义了键盘，但没有自定义相关布局时，使用默认键盘keyboardNormalMore
-            KeyboardType.CUSTOM_MORE -> {
-                currentKeyboard = keyboardCustomMore ?: keyboardNormalMore
-            }
         }
 
         keyboardView.keyboard = currentKeyboard
@@ -848,11 +833,6 @@ open class KingKeyboard : LifecycleEventObserver {
      * 模式改变，切换键盘
      */
     private fun keyModeChange() {
-        when (keyboardType) {
-            KeyboardType.CUSTOM -> keyboardType = KeyboardType.CUSTOM_MODE_CHANGE
-            KeyboardType.CUSTOM_MORE -> keyboardType = KeyboardType.CUSTOM_MODE_CHANGE
-        }
-
         switchKeyboard()
     }
 
@@ -882,16 +862,6 @@ open class KingKeyboard : LifecycleEventObserver {
      * 返回
      */
     private fun keyBack(isBack: Boolean) {
-        when (keyboardType) {
-            KeyboardType.CUSTOM_MODE_CHANGE -> {
-                keyboardType = KeyboardType.CUSTOM
-            }
-
-            KeyboardType.CUSTOM_MORE -> {
-                keyboardType = if (isBack) KeyboardType.CUSTOM else KeyboardType.CUSTOM_MODE_CHANGE
-            }
-        }
-
         switchKeyboard()
     }
 
@@ -899,11 +869,6 @@ open class KingKeyboard : LifecycleEventObserver {
      * 更多
      */
     private fun keyMore() {
-        when (keyboardType) {
-            KeyboardType.CUSTOM -> keyboardType = KeyboardType.CUSTOM_MORE
-            KeyboardType.CUSTOM_MODE_CHANGE -> keyboardType = KeyboardType.CUSTOM_MORE
-        }
-
         switchKeyboard()
     }
 
@@ -1193,20 +1158,5 @@ open class KingKeyboard : LifecycleEventObserver {
          * 浮点数键盘（数字加“.”符号）
          */
         const val NUMBER_DECIMAL = 0x00000302
-
-        /**
-         * 预留自定义键盘类型
-         */
-        const val CUSTOM = 0x00001001
-
-        /**
-         * 预留自定义键盘类型 - 键盘模式切换
-         */
-        const val CUSTOM_MODE_CHANGE = 0x00001002
-
-        /**
-         * 预留自定义键盘类型 - 更多
-         */
-        const val CUSTOM_MORE = 0x00001003
     }
 }
