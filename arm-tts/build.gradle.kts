@@ -80,7 +80,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-tts"
-            version = "1.0.5"
+            version = "1.0.6"
 
             afterEvaluate {
                 from(components["release"])
