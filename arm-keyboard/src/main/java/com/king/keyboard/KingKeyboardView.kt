@@ -463,14 +463,37 @@ open class KingKeyboardView : KeyboardView {
             paint.color = textColor
             paint.typeface = Typeface.DEFAULT
 
-            canvas.drawText(
-                label.toString(),
-                key.x.plus(paddingLeft).plus(key.width.div(2f)),
-                key.y.plus(paddingTop).plus(key.height.div(2f)).plus(
-                    paint.textSize.minus(paint.descent()).div(2f),
-                ),
-                paint,
-            )
+            if (label.toString().contains("\n")) {
+                canvas.drawMultilineText(
+                    "保\n存",
+                    key.x + paddingLeft + key.width / 2f,
+                    key.y + paddingTop + key.height / 2f + (paint.textSize - paint.descent()) / 2f,
+                    paint,
+                )
+            } else {
+                canvas.drawText(
+                    label.toString(),
+                    key.x.plus(paddingLeft).plus(key.width.div(2f)),
+                    key.y.plus(paddingTop).plus(key.height.div(2.0f)).plus(
+                        paint.textSize.minus(paint.descent()).div(2.0f),
+                    ),
+                    paint,
+                )
+            }
+        }
+    }
+
+    private fun Canvas.drawMultilineText(
+        text: String,
+        x: Float,
+        y: Float,
+        paint: Paint,
+    ) {
+        val lines = text.split("\n")
+        var yOffset = 0f
+        for (line in lines) {
+            drawText(line, x, y + yOffset, paint)
+            yOffset += paint.fontSpacing
         }
     }
 

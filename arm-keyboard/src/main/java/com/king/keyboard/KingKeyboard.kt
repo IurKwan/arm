@@ -49,6 +49,8 @@ open class KingKeyboard : LifecycleEventObserver {
 
     private var isAllCaps = false
 
+    private var keyDoneAutoHide = true
+
     private var keyboardType = KeyboardType.LETTER_NUMBER
 
     private val keyboardNormal by lazy {
@@ -792,6 +794,10 @@ open class KingKeyboard : LifecycleEventObserver {
         this.onKeyExtraListener = listener
     }
 
+    fun setKeyDoneAutoHide(hide: Boolean) {
+        this.keyDoneAutoHide = hide
+    }
+
     /**
      * 监听“完成”按键接口
      */
@@ -848,7 +854,9 @@ open class KingKeyboard : LifecycleEventObserver {
      * 完成
      */
     private fun keyDone(primaryCode: Int) {
-        hide()
+        if (keyDoneAutoHide) {
+            hide()
+        }
         onKeyDoneListener?.onKey(currentEditText, primaryCode)
     }
 
