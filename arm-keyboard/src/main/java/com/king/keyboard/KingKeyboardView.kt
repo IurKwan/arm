@@ -464,12 +464,7 @@ open class KingKeyboardView : KeyboardView {
             paint.typeface = Typeface.DEFAULT
 
             if (label.toString().contains("\n")) {
-                canvas.drawMultilineText(
-                    "保\n存",
-                    key.x + paddingLeft + key.width / 2f,
-                    key.y + paddingTop + key.height / 2f + (paint.textSize - paint.descent()) / 2f,
-                    paint,
-                )
+                drawMultiLineText(canvas, label.toString(), key, paint)
             } else {
                 canvas.drawText(
                     label.toString(),
@@ -483,17 +478,23 @@ open class KingKeyboardView : KeyboardView {
         }
     }
 
-    private fun Canvas.drawMultilineText(
+    private fun drawMultiLineText(
+        canvas: Canvas,
         text: String,
-        x: Float,
-        y: Float,
+        key: Keyboard.Key,
         paint: Paint,
     ) {
         val lines = text.split("\n")
-        var yOffset = 0f
-        for (line in lines) {
-            drawText(line, x, y + yOffset, paint)
-            yOffset += paint.fontSpacing
+        val lineHeight = paint.descent() - paint.ascent()
+        val lineSpacing = 10 // 10dp间隔转换为像素
+        val totalTextHeight = lines.size * lineHeight + (lines.size - 1) * lineSpacing
+        val yOffset = (key.height - totalTextHeight) / 2.0f
+
+        for ((index, line) in lines.withIndex()) {
+            val x = key.x + paddingLeft + key.width / 2.0f
+            val y =
+                key.y + paddingTop + yOffset + index * (lineHeight + lineSpacing) + lineHeight - paint.descent()
+            canvas.drawText(line, x, y, paint)
         }
     }
 
