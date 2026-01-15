@@ -48,11 +48,8 @@ object PathUtils {
     ) {
         val folderName = XorDecoder.decode(key, salt)
         val path =
-            if (BuildConfig.DEBUG) {
-                context.getExternalFilesDir(folderName)?.absolutePath
-            } else {
-                context.filesDir.resolve(folderName).absolutePath
-            }
+            context.filesDir.resolve(folderName).absolutePath
+
         sb.append(path)
     }
 

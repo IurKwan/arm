@@ -554,6 +554,8 @@ open class KingKeyboard : LifecycleEventObserver {
      */
     fun getKeyboardType(): Int = keyboardType
 
+    fun getEditTextArray(): SparseArray<EditText> = editTextArray
+
     /**
      * 执行当获View获取焦点时的一些逻辑，如：显示键盘
      */

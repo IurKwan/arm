@@ -20,7 +20,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
+                "proguard-rules.pro"
             )
         }
     }
@@ -111,8 +111,7 @@ publishing {
     repositories {
         maven {
             name = "aliyun"
-            url =
-                uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
+            url = uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
             credentials {
                 username = "REDACTED_ALIYUN_USERNAME"
                 password = "REDACTED_ALIYUN_PASSWORD"
