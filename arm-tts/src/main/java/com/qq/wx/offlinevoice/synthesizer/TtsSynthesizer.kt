@@ -1181,7 +1181,13 @@ class TtsSynthesizer(
             try {
                 while (coroutineContext.isActive && synthesisSentenceIndex < sentences.size && isSessionActive()) {
                     val index = synthesisSentenceIndex
-                    val bag = sentences[index]
+                    val bag = try {
+                        sentences[index] // 尝试直接获取
+                    } catch (e: IndexOutOfBoundsException) {
+                        // 如果发生了并发清空导致越界，直接跳出循环，结束合成任务
+                        AppLogger.w(TAG, "合成循环检测到列表被清空，停止任务。")
+                        break
+                    }
                     val sessionStrategy = strategyManager.currentStrategy
 
                     val finalResult =
@@ -1628,11 +1634,11 @@ class TtsSynthesizer(
 
     private fun startCharacterProgressLoop() {
         if (characterProgressJob?.isActive == true) return
-        characterProgressJob =
-            appScope.launch(Dispatchers.Default) {
-                var lastLine = -1
-                var lastCharIdxInLine = -1
-                while (isActive && currentState == TtsPlaybackState.PLAYING) {
+        characterProgressJob = appScope.launch(Dispatchers.Default) {
+            var lastLine = -1
+            var lastCharIdxInLine = -1
+            while (isActive && currentState == TtsPlaybackState.PLAYING) {
+                try {
                     val progress = audioPlayer.getCurrentSentenceProgress()
                     if (progress != null) {
                         val segmentIdx = progress.sentenceIndex
@@ -1643,24 +1649,22 @@ class TtsSynthesizer(
                         if (charCount > 0) {
                             val rawFrac = progress.fraction.coerceIn(0f, 1f)
                             // 物理段切换时重置平滑状态
-                            val frac =
-                                if (segmentIdx != mapSmoothLastSentence) {
-                                    mapSmoothLastSentence = segmentIdx
-                                    mapSmoothFrac = rawFrac
-                                    rawFrac
-                                } else {
-                                    mapSmoothFrac =
-                                        mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
-                                    mapSmoothFrac
-                                }
+                            val frac = if (segmentIdx != mapSmoothLastSentence) {
+                                mapSmoothLastSentence = segmentIdx
+                                mapSmoothFrac = rawFrac
+                                rawFrac
+                            } else {
+                                mapSmoothFrac =
+                                    mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
+                                mapSmoothFrac
+                            }
 
                             // 当前物理段内部字符索引（估算）
                             val segLocalIndex = mapFractionToWeightedIndex(bag.text, frac)
                             // 行内偏移 = 段起始相对行起始 + 段内索引
                             val baseOffsetInLine = bag.start - bag.groupStart
                             val lineCharIndex =
-                                (baseOffsetInLine + segLocalIndex)
-                                    .coerceAtMost(charCount - 1)
+                                (baseOffsetInLine + segLocalIndex).coerceAtMost(charCount - 1)
                                     .coerceAtLeast(0)
 
                             if (lineId != lastLine || lineCharIndex != lastCharIdxInLine) {
@@ -1670,7 +1674,7 @@ class TtsSynthesizer(
                                     progress = lineCharIndex,
                                     char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
                                     startPos = bag.groupStart,
-                                    endPos = bag.groupEnd,
+                                    endPos = bag.groupEnd
                                 )
                                 lastLine = lineId
                                 lastCharIdxInLine = lineCharIndex
@@ -1684,16 +1688,23 @@ class TtsSynthesizer(
                                     progress = 0,
                                     char = "",
                                     startPos = bag.groupStart,
-                                    endPos = bag.groupEnd,
+                                    endPos = bag.groupEnd
                                 )
                                 lastLine = lineId
                                 lastCharIdxInLine = 0
                             }
                         }
                     }
-                    delay(CHAR_PROGRESS_INTERVAL_MS)
+                } catch (e: Exception) {
+                    // 出现异常说明列表变了，重置记录，确保下一次数据恢复时能立即刷新 UI
+                    lastLine = -1
+                    lastCharIdxInLine = -1
+
+                    e.printStackTrace()
                 }
+                delay(CHAR_PROGRESS_INTERVAL_MS)
             }
+        }
     }
 
     private fun stopCharacterProgressLoop() {
