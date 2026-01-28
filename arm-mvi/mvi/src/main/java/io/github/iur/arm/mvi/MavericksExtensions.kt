@@ -174,18 +174,6 @@ inline fun <T, reified VM : MavericksViewModel<S>, reified S : MavericksState> T
         // so we just test the common case of "existing". We can't be sure that the fragment
         // was designed for it to be used in the non-existing case (ie it may require arguments)
 
-        fun getPreFragment(fragment: Fragment): Fragment? {
-            val fragmentManager = fragment.getParentFragmentManager()
-
-            val fragmentList: MutableList<Fragment> = fragmentManager.fragments
-
-            val index = fragmentList.indexOf(fragment)
-            for (i in index - 1 downTo 0) {
-                return fragmentList[i]
-            }
-            return null
-        }
-
         @Suppress("DEPRECATION")
         val preFragment =
             requireNotNull(getPreFragment(this)) { "There is no pre fragment for ${this::class.java.name}!" }
@@ -385,7 +373,7 @@ fun <T : Any> List<T>.appendAt(
  *
  * @param fragment 目标Fragment
  */
-private fun getPreFragment(fragment: Fragment): Fragment? {
+fun getPreFragment(fragment: Fragment): Fragment? {
     val fragmentManager = fragment.getParentFragmentManager()
 
     val fragmentList: MutableList<Fragment> = fragmentManager.fragments
