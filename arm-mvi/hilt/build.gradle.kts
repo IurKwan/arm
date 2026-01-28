@@ -4,8 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
     `maven-publish`
 }
 
@@ -13,6 +12,7 @@ tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         freeCompilerArgs.addAll(
             "-opt-in=io.github.iur.arm.mvi.common.InternalMavericksApi",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
         )
     }
 }
@@ -49,17 +49,12 @@ android {
             withJavadocJar()
         }
     }
-
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-    }
 }
 
 dependencies {
     api(project(":arm-mvi:mvi"))
 
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt)
     implementation(libs.lifecycle.common)
     implementation(libs.kotlin.coroutines)

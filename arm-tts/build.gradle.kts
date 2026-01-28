@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     `maven-publish`
 }
 
@@ -30,9 +29,6 @@ android {
     }
     buildFeatures {
         buildConfig = true
-    }
-    kotlinOptions {
-        jvmTarget = "11"
     }
     sourceSets["main"].jniLibs.srcDir("libs")
 }
