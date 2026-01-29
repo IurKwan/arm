@@ -2,7 +2,7 @@ package com.qq.wx.offlinevoice.synthesizer
 
 import android.util.Log
 
-class SynthesisStrategyManager() {
+internal class SynthesisStrategyManager {
     // 默认策略可以根据您的产品需求设定
     var currentStrategy: TtsStrategy = TtsStrategy.OFFLINE_ONLY
         private set
