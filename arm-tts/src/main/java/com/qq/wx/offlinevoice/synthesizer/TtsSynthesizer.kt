@@ -57,6 +57,7 @@ import kotlin.properties.Delegates
 class TtsSynthesizer(
     private val context: Context,
     speaker: Speaker,
+    private val splitterStrategy: SentenceSplitterStrategy = SentenceSplitterStrategy.NEWLINE,
     private var currentCallback: TtsCallback? = null,
 ) {
     private sealed class SynthesisResult {
@@ -152,17 +153,17 @@ class TtsSynthesizer(
 
     private var currentState: TtsPlaybackState = TtsPlaybackState.IDLE
 
-    // 使用 TtsBag 取代原先的 String 句子单元
+    // 物理段指按分割策略分割出来的一段文本，按段落分割代表一个完整的段落，按句子分割代表一个完整的句子
     data class TtsBag(
         val text: String,
-        val index: Int,
+        val index: Int, // 序号
         val utteranceId: String,
-        val start: Int,
-        val end: Int,
-        val originalGroupId: Int, // 物理段所属的“原始行”ID
-        val partInGroup: Int, // 行内分段序号
-        val groupStart: Int, // 行整体开始位置
-        val groupEnd: Int, // 行整体结束位置
+        val start: Int, // 当前bag在整个文本中的开始位置
+        val end: Int, // 当前bag在整个文本中的结束位置
+        val originalGroupId: Int, // 物理段的ID，按段落分割时，这代表当前bag属于哪一段，当按句子分割时，这代表当前bag在哪一句
+        val partInGroup: Int, // 所属物理段的分段序号
+        val groupStart: Int, // 在所属物理段的开始位置
+        val groupEnd: Int, // 在所属物理段的结束位置
     ) {
         override fun toString(): String = "index=$index, 第$originalGroupId 段 第$partInGroup 句, text='${text.trim()}'"
     }
@@ -198,7 +199,6 @@ class TtsSynthesizer(
     private var isPausedByError = false
     private var onlineAudioProcessor: AudioSpeedProcessor? = null
     private val processorMutex = Mutex()
-    private val splitterStrategy = SentenceSplitterStrategy.NEWLINE
 
     // 在线失败退避
     private var onlineFailureCount: Int = 0
@@ -1181,13 +1181,14 @@ class TtsSynthesizer(
             try {
                 while (coroutineContext.isActive && synthesisSentenceIndex < sentences.size && isSessionActive()) {
                     val index = synthesisSentenceIndex
-                    val bag = try {
-                        sentences[index] // 尝试直接获取
-                    } catch (e: IndexOutOfBoundsException) {
-                        // 如果发生了并发清空导致越界，直接跳出循环，结束合成任务
-                        AppLogger.w(TAG, "合成循环检测到列表被清空，停止任务。")
-                        break
-                    }
+                    val bag =
+                        try {
+                            sentences[index] // 尝试直接获取
+                        } catch (e: IndexOutOfBoundsException) {
+                            // 如果发生了并发清空导致越界，直接跳出循环，结束合成任务
+                            AppLogger.w(TAG, "合成循环检测到列表被清空，停止任务。")
+                            break
+                        }
                     val sessionStrategy = strategyManager.currentStrategy
 
                     val finalResult =
@@ -1634,77 +1635,80 @@ class TtsSynthesizer(
 
     private fun startCharacterProgressLoop() {
         if (characterProgressJob?.isActive == true) return
-        characterProgressJob = appScope.launch(Dispatchers.Default) {
-            var lastLine = -1
-            var lastCharIdxInLine = -1
-            while (isActive && currentState == TtsPlaybackState.PLAYING) {
-                try {
-                    val progress = audioPlayer.getCurrentSentenceProgress()
-                    if (progress != null) {
-                        val segmentIdx = progress.sentenceIndex
-                        val bag = sentences.getOrNull(segmentIdx) ?: continue
-                        val lineId = segmentToLine.getOrNull(segmentIdx) ?: bag.originalGroupId
-                        val fullLineText = lineTexts.getOrNull(lineId) ?: bag.text
-                        val charCount = fullLineText.length
-                        if (charCount > 0) {
-                            val rawFrac = progress.fraction.coerceIn(0f, 1f)
-                            // 物理段切换时重置平滑状态
-                            val frac = if (segmentIdx != mapSmoothLastSentence) {
-                                mapSmoothLastSentence = segmentIdx
-                                mapSmoothFrac = rawFrac
-                                rawFrac
+        characterProgressJob =
+            appScope.launch(Dispatchers.Default) {
+                var lastLine = -1
+                var lastCharIdxInLine = -1
+                while (isActive && currentState == TtsPlaybackState.PLAYING) {
+                    try {
+                        val progress = audioPlayer.getCurrentSentenceProgress()
+                        if (progress != null) {
+                            val segmentIdx = progress.sentenceIndex
+                            val bag = sentences.getOrNull(segmentIdx) ?: continue
+                            val lineId = segmentToLine.getOrNull(segmentIdx) ?: bag.originalGroupId
+                            val fullLineText = lineTexts.getOrNull(lineId) ?: bag.text
+                            val charCount = fullLineText.length
+                            if (charCount > 0) {
+                                val rawFrac = progress.fraction.coerceIn(0f, 1f)
+                                // 物理段切换时重置平滑状态
+                                val frac =
+                                    if (segmentIdx != mapSmoothLastSentence) {
+                                        mapSmoothLastSentence = segmentIdx
+                                        mapSmoothFrac = rawFrac
+                                        rawFrac
+                                    } else {
+                                        mapSmoothFrac =
+                                            mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
+                                        mapSmoothFrac
+                                    }
+
+                                // 当前物理段内部字符索引（估算）
+                                val segLocalIndex = mapFractionToWeightedIndex(bag.text, frac)
+                                // 行内偏移 = 段起始相对行起始 + 段内索引
+                                val baseOffsetInLine = bag.start - bag.groupStart
+                                val lineCharIndex =
+                                    (baseOffsetInLine + segLocalIndex)
+                                        .coerceAtMost(charCount - 1)
+                                        .coerceAtLeast(0)
+
+                                if (lineId != lastLine || lineCharIndex != lastCharIdxInLine) {
+                                    currentCallback?.onSentenceProgressChanged(
+                                        sentenceIndex = lineId,
+                                        sentence = fullLineText,
+                                        progress = lineCharIndex,
+                                        char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
+                                        startPos = bag.groupStart,
+                                        endPos = bag.groupEnd,
+                                    )
+                                    lastLine = lineId
+                                    lastCharIdxInLine = lineCharIndex
+                                }
                             } else {
-                                mapSmoothFrac =
-                                    mapSmoothFrac * (1f - MAP_FRAC_ALPHA) + rawFrac * MAP_FRAC_ALPHA
-                                mapSmoothFrac
-                            }
-
-                            // 当前物理段内部字符索引（估算）
-                            val segLocalIndex = mapFractionToWeightedIndex(bag.text, frac)
-                            // 行内偏移 = 段起始相对行起始 + 段内索引
-                            val baseOffsetInLine = bag.start - bag.groupStart
-                            val lineCharIndex =
-                                (baseOffsetInLine + segLocalIndex).coerceAtMost(charCount - 1)
-                                    .coerceAtLeast(0)
-
-                            if (lineId != lastLine || lineCharIndex != lastCharIdxInLine) {
-                                currentCallback?.onSentenceProgressChanged(
-                                    sentenceIndex = lineId,
-                                    sentence = fullLineText,
-                                    progress = lineCharIndex,
-                                    char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
-                                    startPos = bag.groupStart,
-                                    endPos = bag.groupEnd
-                                )
-                                lastLine = lineId
-                                lastCharIdxInLine = lineCharIndex
-                            }
-                        } else {
-                            // 空行：固定回调 0
-                            if (lineId != lastLine || lastCharIdxInLine != 0) {
-                                currentCallback?.onSentenceProgressChanged(
-                                    sentenceIndex = lineId,
-                                    sentence = "",
-                                    progress = 0,
-                                    char = "",
-                                    startPos = bag.groupStart,
-                                    endPos = bag.groupEnd
-                                )
-                                lastLine = lineId
-                                lastCharIdxInLine = 0
+                                // 空行：固定回调 0
+                                if (lineId != lastLine || lastCharIdxInLine != 0) {
+                                    currentCallback?.onSentenceProgressChanged(
+                                        sentenceIndex = lineId,
+                                        sentence = "",
+                                        progress = 0,
+                                        char = "",
+                                        startPos = bag.groupStart,
+                                        endPos = bag.groupEnd,
+                                    )
+                                    lastLine = lineId
+                                    lastCharIdxInLine = 0
+                                }
                             }
                         }
-                    }
-                } catch (e: Exception) {
-                    // 出现异常说明列表变了，重置记录，确保下一次数据恢复时能立即刷新 UI
-                    lastLine = -1
-                    lastCharIdxInLine = -1
+                    } catch (e: Exception) {
+                        // 出现异常说明列表变了，重置记录，确保下一次数据恢复时能立即刷新 UI
+                        lastLine = -1
+                        lastCharIdxInLine = -1
 
-                    e.printStackTrace()
+                        e.printStackTrace()
+                    }
+                    delay(CHAR_PROGRESS_INTERVAL_MS)
                 }
-                delay(CHAR_PROGRESS_INTERVAL_MS)
             }
-        }
     }
 
     private fun stopCharacterProgressLoop() {
