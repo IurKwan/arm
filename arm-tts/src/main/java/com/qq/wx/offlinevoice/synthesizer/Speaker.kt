@@ -27,6 +27,22 @@ enum class Speaker(
     fun isResourceAvailable(context: Context): Boolean = PathUtils.checkVoiceResourceExists(context, offlineModelName)
 
     companion object {
+        /** 通过模型名称获取枚举实例,仅匹配在线模型名称 */
         fun fromModelName(name: String?): Speaker? = entries.firstOrNull { it.modelName == name }
+
+        /**
+         * 通过模型名称获取枚举实例,匹配在线与离线两种模型名称，有个问题是女生的离线模型名称相同，
+         * 所以只能返回第一个匹配到的实例，即 FEMALE1
+         */
+        fun fromAnyModelName(name: String?): Speaker? = entries.firstOrNull { it.modelName == name || it.offlineModelName == name }
+
+        /** 是否为微信离线 TTS 支持的模型名称（含在线与离线两种命名） */
+        fun isWxModel(name: String?): Boolean = entries.any { it.modelName == name || it.offlineModelName == name }
+
+        /** 是否为微信离线 TTS 支持的离线模型名称 */
+        fun isOfflineModel(name: String?): Boolean = entries.any { it.offlineModelName == name }
+
+        /** 是否为微信离线 TTS 支持的在线模型名称 */
+        fun isOnlineModel(name: String?): Boolean = entries.any { it.modelName == name }
     }
 }
