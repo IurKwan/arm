@@ -37,13 +37,13 @@ object SentenceSplitter {
         LineBreak("[\r\n]+"),
 
         /** 句末标点（句号、问号、感叹号、省略号等） */
-        BreakPunctuation("([.](?![0-9])|[。?？!！…]+)[\"”'’)）]*"),
+        BreakPunctuation("([.](?![0-9])|[。?？!！…]+)[\"”'’)）]*\\\\s*"),
 
         /** 停顿标点（逗号、分号、冒号等） */
-        EndPunctuation("[,，;；]+|[:：][\"“'‘]+"),
+        EndPunctuation("[,，;；]+|[:：][\"“'‘]+\\\\s*"),
 
         /** 分隔标点（顿号等） */
-        SeparationPunctuation("[、]+"),
+        SeparationPunctuation("[、]+");
     }
 
     // 提取出所有用于切分的标点集合
@@ -236,6 +236,7 @@ object SentenceSplitter {
         var initialGroups = listOf(GroupRange(0, text.length, 0, false))
         initialGroups = toSplit(initialGroups, text, RegexConfig.LineBreak)
         initialGroups = toSplit(initialGroups, text, RegexConfig.BreakPunctuation)
+        initialGroups = toSplit(initialGroups, text, RegexConfig.EndPunctuation)
 
         // 2. 按长度切分分组
         val pieces = chunkGroupsByLength(initialGroups, text, maxLength)

@@ -1354,6 +1354,33 @@ class TtsSynthesizer(
                     }
                     return@withLock SynthesisResult.Success
                 }
+
+                val exist =
+                    PathUtils.checkVoiceResourceExists(context, currentSpeaker.offlineModelName)
+                if (!exist) {
+                    val reason =
+                        """
+                        ┌ ----------------------------
+                        | 合成[离线]句子准备失败，模型资源不存在
+                        | bag: $bag, 
+                        | 实际文本: "$trimmed"
+                        | 准备状态码: ${ErrCode.MODEL_NOT_FOUND}
+                        └ ----------------------------
+                        """.trimIndent()
+                    currentCallback?.onSynthesisError(
+                        mode = SynthesisMode.OFFLINE,
+                        errorCode = ErrCode.MODEL_NOT_FOUND,
+                        errorMessage = "离线模型资源不存在",
+                        sentence = trimmed,
+                    )
+                    AppLogger.e(
+                        TAG,
+                        "离线语音资源不存在: ${currentSpeaker.offlineModelName}，请先下载对应资源。",
+                        important = true,
+                    )
+                    return SynthesisResult.Failure(reason)
+                }
+
                 AppLogger.d(
                     TAG,
                     """
@@ -1391,13 +1418,24 @@ class TtsSynthesizer(
                         └ ----------------------------
                         """.trimIndent()
                     AppLogger.e(TAG, reason, important = true)
+                    val errorMsg =
+                        when (prepare) {
+                            -1 -> "离线prepare失败"
+                            ErrCode.MODEL_NOT_FOUND -> "离线模型资源不存在"
+                            else -> "未知错误"
+                        }
                     currentCallback?.onSynthesisError(
                         mode = SynthesisMode.OFFLINE,
                         errorCode = prepare,
-                        errorMessage = "离线prepare失败",
+                        errorMessage = errorMsg,
                         sentence = trimmed,
                     )
-                    return@withLock SynthesisResult.Success
+                    if (prepare == -1) {
+                        return@withLock SynthesisResult.Success
+                    } else {
+                        // 如果是资源错误或者其他未知错误，算失败处理，不再继续流程
+                        return@withLock SynthesisResult.Failure(reason)
+                    }
                 }
 
                 val startCb = {
@@ -1597,6 +1635,9 @@ class TtsSynthesizer(
         audioPlayer.enqueueEndOfStream(onDrained)
     }
 
+    /**
+     * @return 状态码：0=成功，-1=失败，-12=模型资源不存在
+     */
     private fun prepareForSynthesis(
         text: String,
         speed: Float,
@@ -1604,6 +1645,16 @@ class TtsSynthesizer(
     ): Int {
         synchronized(this) {
             if (currentSpeaker.offlineModelName != currentVoiceCode) {
+                val exist =
+                    PathUtils.checkVoiceResourceExists(context, currentSpeaker.offlineModelName)
+                if (!exist) {
+                    AppLogger.e(
+                        TAG,
+                        "离线语音资源不存在: ${currentSpeaker.offlineModelName}，请先下载对应资源。",
+                        important = true,
+                    )
+                    return ErrCode.MODEL_NOT_FOUND
+                }
                 currentVoiceCode = currentSpeaker.offlineModelName
                 nativeEngine?.setVoiceName(currentSpeaker.offlineModelName)
             }
@@ -1676,7 +1727,9 @@ class TtsSynthesizer(
                                         sentenceIndex = lineId,
                                         sentence = fullLineText,
                                         progress = lineCharIndex,
-                                        char = fullLineText.getOrNull(lineCharIndex)?.toString() ?: "",
+                                        char =
+                                            fullLineText.getOrNull(lineCharIndex)?.toString()
+                                                ?: "",
                                         startPos = bag.groupStart,
                                         endPos = bag.groupEnd,
                                     )

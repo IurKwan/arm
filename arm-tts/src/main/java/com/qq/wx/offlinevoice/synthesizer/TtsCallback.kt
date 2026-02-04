@@ -9,12 +9,12 @@ interface TtsCallback {
      * @param error 如果初始化失败，则包含异常信息；如果成功，则为null
      */
     fun onInitialized(error: Throwable?)
-    
+
     /**
      * 整体TTS合成开始时调用（针对所有句子）
      */
     fun onSynthesisStart() {}
-    
+
     /**
      * 特定句子开始朗读时调用
      * @param sentenceIndex 句子的索引（从0开始）
@@ -24,8 +24,15 @@ interface TtsCallback {
      * @param startPos 句子在整体文本中的起始位置
      * @param endPos 句子在整体文本中的结束位置
      */
-    fun onSentenceStart(sentenceIndex: Int, sentence: String, totalSentences: Int, mode: SynthesisMode, startPos: Int, endPos: Int, triggerReason: String? = null)
-
+    fun onSentenceStart(
+        sentenceIndex: Int,
+        sentence: String,
+        totalSentences: Int,
+        mode: SynthesisMode,
+        startPos: Int,
+        endPos: Int,
+        triggerReason: String? = null,
+    )
 
     /**
      * 特定句子朗读进度变化时调用， Progress不太准确（特别是离线模式，预测整句的长度算出来的），仅供参考
@@ -36,15 +43,25 @@ interface TtsCallback {
      * @param startPos 句子在整体文本中的起始位置
      * @param endPos 句子在整体文本中的结束位置
      */
-    fun onSentenceProgressChanged(sentenceIndex: Int, sentence: String, progress: Int, char: String, startPos: Int, endPos: Int)
-    
+    fun onSentenceProgressChanged(
+        sentenceIndex: Int,
+        sentence: String,
+        progress: Int,
+        char: String,
+        startPos: Int,
+        endPos: Int,
+    )
+
     /**
      * 特定句子完成朗读时调用
      * @param sentenceIndex 句子的索引（从0开始）
      * @param sentence 句子的文本
      */
-    fun onSentenceComplete(sentenceIndex: Int, sentence: String) {}
-    
+    fun onSentenceComplete(
+        sentenceIndex: Int,
+        sentence: String,
+    ) {}
+
     /**
      * 播放状态变化时调用
      * @param newState 新的播放状态
@@ -58,25 +75,30 @@ interface TtsCallback {
      * @param startPos 句子在整体文本中的起始位置
      * @param endPos 句子在整体文本中的结束位置
      */
-    fun onSeekComplete(sentenceIndex: Int, sentence: String, startPos: Int, endPos: Int) {}
-    
+    fun onSeekComplete(
+        sentenceIndex: Int,
+        sentence: String,
+        startPos: Int,
+        endPos: Int,
+    ) {}
+
     /**
      * 所有句子都已成功朗读时调用
      */
     fun onSynthesisComplete()
-    
+
     /**
      * 播放暂停时调用
      */
     fun onPaused() {}
-    
+
     /**
      * 播放恢复时调用
      */
     fun onResumed() {}
-    
+
     /**
-     * 合成过程中发生错误时调用
+     * 合成过程中发生其他错误时调用
      * @param errorMessage 错误描述
      */
     fun onError(errorMessage: String) {}
@@ -86,12 +108,21 @@ interface TtsCallback {
      * @param logMessage 日志内容
      * @param level 日志级别
      */
-    fun onLog(level: Level, logMessage: String) {}
+    fun onLog(
+        level: Level,
+        logMessage: String,
+    ) {}
 
     /**
      * 在线合成错误回调
      * @param errorCode 错误码
      * @param errorMessage 错误描述
      */
-    fun onSynthesisError(sentence: String?, mode: SynthesisMode, errorCode: Int? = -1, errorMessage: String?) {}
+    fun onSynthesisError(
+        sentence: String?,
+        mode: SynthesisMode,
+        errorCode: Int? = -1,
+        errorMessage: String?,
+    ) {
+    }
 }
