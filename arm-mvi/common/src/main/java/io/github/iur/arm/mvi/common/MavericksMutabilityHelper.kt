@@ -50,7 +50,10 @@ fun assertMavericksDataClassImmutability(
             val disallowedFieldCollectionType =
                 disallowedFieldCollectionTypes.firstOrNull { clazz -> prop.isSubtype(clazz.kotlin) }
             when {
-                !Modifier.isFinal(prop.modifiers) -> "State property ${prop.name} must be a val, not a var."
+                !Modifier.isFinal(prop.modifiers) -> {
+                    "State property ${prop.name} must be a val, not a var."
+                }
+
                 disallowedFieldCollectionType != null -> {
                     "You cannot use ${disallowedFieldCollectionType.simpleName} for ${prop.name}.\n$IMMUTABLE_LIST_MESSAGE"
                 }
@@ -59,46 +62,12 @@ fun assertMavericksDataClassImmutability(
                     "You cannot use functions inside Mavericks state. Only pure data should be represented: ${prop.name}"
                 }
 
-                else -> null
+                else -> {
+                    null
+                }
             }?.let { throw IllegalArgumentException("Invalid property in state ${kClass.simpleName}: $it") }
         }
 }
-
-/**
- * Since we can only use java reflection, this basically duck types a data class.
- * componentN methods are also used for @PersistState.
- */
-internal val Class<*>.isData: Boolean
-    get() {
-        // When a value class is present in the constructor, Kotlin mangles the copy method name
-        // to avoid signature clashes (e.g., "copy-KtkBMb8$default" instead of "copy$default").
-        // We check for either the exact name "copy$default" or the pattern "copy-*$default".
-        val hasCopyDefault =
-            declaredMethods.any { method ->
-                method.isSynthetic &&
-                    method.name.let { name ->
-                        name == "copy\$default" || (name.startsWith("copy-") && name.endsWith("\$default"))
-                    }
-            }
-        if (!hasCopyDefault) return false
-
-        // Similarly, component1 can be mangled when it's a value class type.
-        // It can also have module names appended for internal properties.
-        // Patterns: "component1", "component1$module", "component1-<hash>"
-        val hasComponent1 =
-            declaredMethods.any { method ->
-                method.name.let { name ->
-                    name == "component1" ||
-                        name.startsWith("component1\$") ||
-                        name.startsWith("component1-")
-                }
-            }
-        if (!hasComponent1) return false
-
-        declaredMethods.firstOrNull { it.name == "equals" } ?: return false
-        declaredMethods.firstOrNull { it.name == "hashCode" } ?: return false
-        return true
-    }
 
 /**
  * Checks that a state's value is not changed over its lifetime.
