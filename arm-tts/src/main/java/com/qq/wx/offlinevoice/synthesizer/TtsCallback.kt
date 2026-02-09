@@ -60,7 +60,8 @@ interface TtsCallback {
     fun onSentenceComplete(
         sentenceIndex: Int,
         sentence: String,
-    ) {}
+    ) {
+    }
 
     /**
      * 播放状态变化时调用
@@ -80,7 +81,8 @@ interface TtsCallback {
         sentence: String,
         startPos: Int,
         endPos: Int,
-    ) {}
+    ) {
+    }
 
     /**
      * 所有句子都已成功朗读时调用
@@ -101,7 +103,11 @@ interface TtsCallback {
      * 合成过程中发生其他错误时调用
      * @param errorMessage 错误描述
      */
-    fun onError(errorMessage: String) {}
+    fun onError(
+        errorMessage: String,
+        errorCode: Int?,
+    ) {
+    }
 
     /**
      * 日志回调
@@ -111,7 +117,8 @@ interface TtsCallback {
     fun onLog(
         level: Level,
         logMessage: String,
-    ) {}
+    ) {
+    }
 
     /**
      * 在线合成错误回调
