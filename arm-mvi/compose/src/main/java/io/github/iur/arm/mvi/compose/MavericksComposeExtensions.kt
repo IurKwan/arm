@@ -25,6 +25,7 @@ import io.github.iur.arm.mvi.FragmentViewModelContext
 import io.github.iur.arm.mvi.Mavericks
 import io.github.iur.arm.mvi.MavericksViewModel
 import io.github.iur.arm.mvi.MavericksViewModelProvider
+import io.github.iur.arm.mvi.ViewModelDoesNotExistException
 import io.github.iur.arm.mvi.common.InternalMavericksApi
 import io.github.iur.arm.mvi.common.MavericksState
 import io.github.iur.arm.mvi.withState
@@ -32,7 +33,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.jvm.java
 import kotlin.reflect.KProperty1
+import kotlin.text.get
 
 /**
  * Get or create a [MavericksViewModel] scoped to the closest [LocalLifecycleOwner].
@@ -102,6 +105,105 @@ inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mave
             stateClass = S::class.java,
             viewModelContext = viewModelContext,
             key = keyFactory?.invoke() ?: viewModelClass.java.name,
+        )
+    }
+}
+
+/**
+ * Get or create a [MavericksViewModel] scoped to the parent fragment of the current Fragment.
+ * This is useful when a child Fragment's Compose UI needs to access its parent Fragment's ViewModel.
+ *
+ * This function will walk up the parentFragment hierarchy until it finds a Fragment that can
+ * provide the correct ViewModel. If no parent fragments can provide the ViewModel, it will
+ * create a new one in the top-most parent Fragment.
+ *
+ * @param keyFactory Optionally provide a key to differentiate multiple viewmodels of the same type in the same scope.
+ *
+ * @param argsFactory If present, the result from this function will be passed to your state constructor as a parameter when the viewmodel is first initialized.
+ *
+ * @throws IllegalStateException if there is no parent fragment.
+ */
+@Composable
+@Suppress("DEPRECATION")
+inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mavericksParentFragmentViewModel(
+    noinline keyFactory: (() -> String)? = null,
+    noinline argsFactory: (() -> Any?)? = null,
+): VM {
+    val activity =
+        extractActivityFromContext(LocalContext.current)
+            ?: error("Composable is not hosted in a ComponentActivity!")
+
+    val view = LocalView.current
+    val currentFragment =
+        findFragmentFromView(view)
+            ?: error("Cannot find fragment from current view")
+
+    val parentFragment =
+        currentFragment.parentFragment
+            ?: error("There is no parent fragment for ${currentFragment::class.java.name}")
+
+    val viewModelClass = VM::class
+    val key = keyFactory?.invoke() ?: viewModelClass.java.name
+
+    // Find the target fragment that will own the ViewModel
+    // Use remember to avoid recomputing on every recomposition
+    val targetFragmentAndArgs =
+        remember(parentFragment, activity, key, argsFactory) {
+            // First, try to find an existing ViewModel in parent fragments
+            var parent: Fragment? = parentFragment
+            while (parent != null) {
+                val args = argsFactory?.invoke() ?: parent.arguments?.get(Mavericks.KEY_ARG)
+                val viewModelContext =
+                    FragmentViewModelContext(
+                        activity = activity,
+                        args = args,
+                        fragment = parent,
+                    )
+                try {
+                    MavericksViewModelProvider.get(
+                        viewModelClass = viewModelClass.java,
+                        stateClass = S::class.java,
+                        viewModelContext = viewModelContext,
+                        key = key,
+                        forExistingViewModel = true,
+                    )
+                    // Found existing ViewModel, return this fragment as target
+                    return@remember Pair(parent, args)
+                } catch (e: ViewModelDoesNotExistException) {
+                    parent = parent.parentFragment
+                }
+            }
+
+            // If no existing ViewModel found, find top-most parent fragment
+            var topParentFragment: Fragment? = parentFragment
+            while (topParentFragment?.parentFragment != null) {
+                topParentFragment = topParentFragment.parentFragment
+            }
+
+            val topParent = topParentFragment!!
+            val args = argsFactory?.invoke() ?: topParent.arguments?.get(Mavericks.KEY_ARG)
+            Pair(topParent, args)
+        }
+
+    val (targetFragment, args) = targetFragmentAndArgs
+
+    // Create ViewModelContext and cache with remember
+    val viewModelContext =
+        remember(targetFragment, activity, args) {
+            FragmentViewModelContext(
+                activity = activity,
+                args = args,
+                fragment = targetFragment,
+            )
+        }
+
+    // Get or create the ViewModel, cached by viewModelContext
+    return remember(viewModelClass, viewModelContext, key) {
+        MavericksViewModelProvider.get(
+            viewModelClass = viewModelClass.java,
+            stateClass = S::class.java,
+            viewModelContext = viewModelContext,
+            key = key,
         )
     }
 }
