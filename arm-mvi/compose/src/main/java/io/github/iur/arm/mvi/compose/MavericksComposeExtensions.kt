@@ -35,7 +35,6 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.jvm.java
 import kotlin.reflect.KProperty1
-import kotlin.text.get
 
 /**
  * Get or create a [MavericksViewModel] scoped to the closest [LocalLifecycleOwner].

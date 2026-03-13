@@ -49,7 +49,6 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-//    api(project(":arm-mvi:mvi"))
     api(libs.arm.mvi.mvi)
 
     implementation(libs.lifecycle.common)
