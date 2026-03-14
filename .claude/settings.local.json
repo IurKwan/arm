@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -l arm-mvi/compose/build/outputs/aar/compose-release.aar)",
+      "Bash(cd arm-mvi/compose && unzip -p build/outputs/aar/compose-release.aar R.txt | head -30)",
+      "Bash(unzip -p arm-mvi/compose/build/outputs/aar/compose-release.aar classes.jar)",
+      "Read(//private/tmp/**)",
+      "Bash(jar tf:*)",
+      "Bash(cat ~/.gradle/caches/modules-2/files-2.1/io.github.iur/arm-mvi-compose/1.0.3/*/arm-mvi-compose-1.0.3.pom 2>/dev/null | head -60)",
+      "Bash(cat ~/.gradle/caches/modules-2/files-2.1/io.github.iur/arm-mvi-compose/1.0.3/*/arm-mvi-compose-1.0.3.pom 2>/dev/null | grep -A 2 \"<dependency>\")",
+      "Bash(find ~/.gradle/caches/modules-2/files-2.1/io.github.iur/arm-mvi-hilt/ -name \"*.pom\" | head -1 | xargs cat 2>/dev/null | grep -A 2 \"<dependency>\")",
+      "Bash(cd /Users/guanzhirui/rui-projects/arm && ./gradlew :arm-mvi:compose:assembleRelease --no-daemon 2>&1 | tail -30)",
+      "Bash(./gradlew :arm-mvi:compose:assembleRelease --no-daemon 2>&1 | tail -50)",
+      "Bash(./gradlew :arm-mvi:compose:assembleRelease --no-daemon 2>&1 | tail -40)",
+      "Bash(./gradlew :arm-mvi:compose:clean :arm-mvi:compose:assembleRelease --no-daemon 2>&1 | tail -50)",
+      "Bash(./gradlew :arm-mvi:compose:assembleRelease --stacktrace --no-daemon 2>&1 | grep -A 30 \"checkReleaseAarMetadata\")",
+      "Bash(./gradlew :arm-mvi:compose:dependencies --configuration releaseRuntimeClasspath --no-daemon 2>&1 | tail -30)",
+      "Bash(./gradlew :arm-mvi:compose:dependencies --configuration releaseRuntimeClasspath --no-daemon 2>&1 | grep -i compose)",
+      "Bash(./gradlew --stop 2>/dev/null; ./gradlew dependencies --configuration debugRuntimeClasspath 2>&1 | head -100)",
+      "Bash(./gradlew :arm-mvi:compose:assemble 2>&1 | tail -30)",
+      "Bash(sleep 5 && ./gradlew :arm-mvi:compose:assemble 2>&1 | tail -30)",
+      "Bash(./gradlew :arm-mvi:compose:assemble --no-daemon -Dhttps.protocols=TLSv1.2 2>&1 | tail -20)"
+    ]
+  }
+}

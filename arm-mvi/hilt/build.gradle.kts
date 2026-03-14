@@ -52,7 +52,7 @@ android {
 }
 
 dependencies {
-    api(project(":arm-mvi:mvi"))
+    api(libs.arm.mvi.mvi)
 
     ksp(libs.hilt.compiler)
     implementation(libs.hilt)
