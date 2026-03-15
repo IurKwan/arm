@@ -5,6 +5,7 @@ import android.content.ContextWrapper
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,8 +18,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import io.github.iur.arm.mvi.ActivityViewModelContext
 import io.github.iur.arm.mvi.FragmentViewModelContext
@@ -250,6 +253,104 @@ inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mave
         keyFactory = keyFactory,
         argsFactory = argsFactory,
     )
+}
+
+/**
+ * Creates a [ViewModelStoreOwner] that is scoped to the current Composable.
+ * When the Composable is removed from the composition, the ViewModelStore will be cleared,
+ * destroying all ViewModels created within this scope.
+ *
+ * This is useful for temporary UI components like BottomSheet, Dialog, or modal screens
+ * where you want the ViewModel lifecycle to match the UI component's lifecycle.
+ *
+ * Usage:
+ * ```
+ * @Composable
+ * fun MyBottomSheet() {
+ *     val owner = rememberComposableViewModelStoreOwner()
+ *     val viewModel = remember(owner) {
+ *         MavericksViewModelProvider.get(
+ *             viewModelClass = MyViewModel::class.java,
+ *             stateClass = MyState::class.java,
+ *             viewModelContext = ActivityViewModelContext(
+ *                 activity = extractActivityFromContext(LocalContext.current)!!,
+ *                 args = null,
+ *                 owner = owner,
+ *                 savedStateRegistry = owner.savedStateRegistry,
+ *             ),
+ *             key = "my_viewmodel_key",
+ *         )
+ *     }
+ * }
+ * ```
+ */
+@Composable
+@InternalMavericksApi
+fun rememberComposableViewModelStoreOwner(): ViewModelStoreOwner {
+    val activity = extractActivityFromContext(LocalContext.current)
+        ?: error("Composable is not hosted in a ComponentActivity!")
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val viewModelStore = remember { ViewModelStore() }
+
+    // Clear ViewModelStore when Composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModelStore.clear()
+        }
+    }
+
+    return object : ViewModelStoreOwner, SavedStateRegistryOwner {
+        override val viewModelStore: ViewModelStore get() = viewModelStore
+        override val lifecycle: Lifecycle get() = lifecycleOwner.lifecycle
+        override val savedStateRegistry: SavedStateRegistry get() = activity.savedStateRegistry
+    }
+}
+
+/**
+ * Get or create a [MavericksViewModel] scoped to the current Composable.
+ * When the Composable is removed from the composition, the ViewModel will be destroyed.
+ *
+ * This is useful for temporary UI components like BottomSheet, Dialog, or modal screens
+ * where you want the ViewModel lifecycle to match the UI component's lifecycle.
+ *
+ * @param keyFactory Optionally provide a key to differentiate multiple viewmodels of the same type.
+ *                   By default the key is the ViewModel class name.
+ *
+ * @param argsFactory If present, the result from this function will be passed to your state
+ *                    constructor as a parameter when the viewmodel is first initialized.
+ */
+@Composable
+@InternalMavericksApi
+inline fun <reified VM : MavericksViewModel<S>, reified S : MavericksState> mavericksComposableViewModel(
+    noinline keyFactory: (() -> String)? = null,
+    noinline argsFactory: (() -> Any?)? = null,
+): VM {
+    val activity = extractActivityFromContext(LocalContext.current)
+        ?: error("Composable is not hosted in a ComponentActivity!")
+
+    // 创建自定义的 ViewModelStoreOwner，与 Composable 生命周期绑定
+    val viewModelStoreOwner = rememberComposableViewModelStoreOwner()
+
+    // 创建 ViewModelContext，复用 Activity 的 SavedStateRegistry
+    val viewModelContext = remember(viewModelStoreOwner, activity, argsFactory) {
+        ActivityViewModelContext(
+            activity = activity,
+            args = argsFactory?.invoke(),
+            owner = viewModelStoreOwner,
+            savedStateRegistry = activity.savedStateRegistry,
+        )
+    }
+
+    // 创建或获取 ViewModel
+    return remember(viewModelContext, keyFactory) {
+        MavericksViewModelProvider.get(
+            viewModelClass = VM::class.java,
+            stateClass = S::class.java,
+            viewModelContext = viewModelContext,
+            key = keyFactory?.invoke() ?: "mavericks_composable_${VM::class.java.name}",
+        )
+    }
 }
 
 /**
