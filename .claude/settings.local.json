@@ -53,7 +53,16 @@
       "Bash(./gradlew :arm-mvi:compose:publish 2>&1 | tail -15)",
       "WebSearch",
       "Bash(./gradlew :arm-mvi:compose:compileDebugKotlin 2>&1 | tail -50)",
-      "Bash(./gradlew :arm-mvi:compose:compileDebugKotlin 2>&1 | tail -30)"
+      "Bash(./gradlew :arm-mvi:compose:compileDebugKotlin 2>&1 | tail -30)",
+      "Bash(./gradlew :arm-mvi:common:assembleRelease :arm-mvi:mvi:assembleRelease)",
+      "Bash(unzip -l mvi-release.aar)",
+      "Bash(grep \"\\\\.class$\")",
+      "Bash(./gradlew :arm-mvi:mvi:clean :arm-mvi:mvi:assembleRelease)",
+      "Bash(javap -p classes.jar)",
+      "Bash(javap -p -cp classes.jar io.github.iur.arm.mvi.MavericksViewModel)",
+      "Bash(javap -p -cp classes.jar io.github.iur.arm.mvi.MavericksView)",
+      "Bash(./gradlew :arm-mvi:common:clean :arm-mvi:mvi:clean :arm-mvi:common:assembleRelease :arm-mvi:mvi:assembleRelease)",
+      "Bash(git add *)"
     ]
   }
 }
