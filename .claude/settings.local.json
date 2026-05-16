@@ -62,7 +62,11 @@
       "Bash(javap -p -cp classes.jar io.github.iur.arm.mvi.MavericksViewModel)",
       "Bash(javap -p -cp classes.jar io.github.iur.arm.mvi.MavericksView)",
       "Bash(./gradlew :arm-mvi:common:clean :arm-mvi:mvi:clean :arm-mvi:common:assembleRelease :arm-mvi:mvi:assembleRelease)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(./gradlew :arm-mvi:common:assembleRelease :arm-mvi:mvi:assembleRelease :arm-mvi:compose:assembleRelease :arm-mvi:hilt:assembleRelease :arm-mvi:navigation:assembleRelease :arm-mvi:rxjava:assembleRelease)",
+      "Bash(rm -rf ~/.m2/repository/io/github/iur/arm-mvi-common/)",
+      "Bash(./gradlew :arm-mvi:common:publishReleasePublicationToMavenLocal)"
     ]
   }
 }
