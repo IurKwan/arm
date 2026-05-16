@@ -6,6 +6,15 @@ plugins {
     `maven-publish`
 }
 
+android {
+    publishing {
+        singleVariant("release") {
+            // withSourcesJar()
+            // withJavadocJar()
+        }
+    }
+}
+
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         freeCompilerArgs.addAll(
@@ -53,15 +62,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-}
-
-android {
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
 }
 
 publishing {
