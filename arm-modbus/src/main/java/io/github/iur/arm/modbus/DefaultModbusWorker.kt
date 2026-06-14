@@ -22,6 +22,7 @@ import com.serotonin.modbus4j.msg.WriteRegisterRequest
 import com.serotonin.modbus4j.msg.WriteRegisterResponse
 import com.serotonin.modbus4j.msg.WriteRegistersRequest
 import com.serotonin.modbus4j.msg.WriteRegistersResponse
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -64,7 +65,7 @@ class DefaultModbusWorker : ModbusWorker {
             return@withLock Result.failure(IllegalStateException(RELEASED_MESSAGE))
         }
         withContext(Dispatchers.IO) {
-            runCatching {
+            runCatchingCancellable {
                 sendTime = 0L
                 master?.runCatching { destroy() }
                 master = null
@@ -174,7 +175,7 @@ class DefaultModbusWorker : ModbusWorker {
         }
         applySendInterval()
         val result = withContext(Dispatchers.IO) {
-            runCatching { block() }
+            runCatchingCancellable { block() }
         }
         if (result.isSuccess) {
             sendTime = SystemClock.uptimeMillis()
@@ -201,6 +202,18 @@ class DefaultModbusWorker : ModbusWorker {
             throw ModbusRespException(response)
         }
         return response
+    }
+
+    /**
+     * Like [runCatching] but rethrows [CancellationException] so coroutine cancellation
+     * propagates instead of being silently captured into a [Result.failure].
+     */
+    private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (c: CancellationException) {
+        throw c
+    } catch (t: Throwable) {
+        Result.failure(t)
     }
 
     companion object {
