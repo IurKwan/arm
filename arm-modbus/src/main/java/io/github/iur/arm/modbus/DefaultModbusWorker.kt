@@ -35,7 +35,6 @@ import kotlinx.coroutines.withContext
  * 内部用 [Mutex] 序列化所有 Modbus 请求，IO 工作 dispatch 到 [Dispatchers.IO]。
  */
 class DefaultModbusWorker : ModbusWorker {
-
     private val mutex = Mutex()
 
     @Volatile
@@ -60,29 +59,30 @@ class DefaultModbusWorker : ModbusWorker {
     override val modbusMaster: ModbusMaster?
         get() = master
 
-    override suspend fun init(param: ModbusParam): Result<ModbusMaster> = mutex.withLock {
-        if (released) {
-            return@withLock Result.failure(IllegalStateException(RELEASED_MESSAGE))
-        }
-        withContext(Dispatchers.IO) {
-            runCatchingCancellable {
-                sendTime = 0L
-                master?.runCatching { destroy() }
-                master = null
+    override suspend fun init(param: ModbusParam): Result<ModbusMaster> =
+        mutex.withLock {
+            if (released) {
+                return@withLock Result.failure(IllegalStateException(RELEASED_MESSAGE))
+            }
+            withContext(Dispatchers.IO) {
+                runCatchingCancellable {
+                    sendTime = 0L
+                    master?.runCatching { destroy() }
+                    master = null
 
-                val newMaster = param.createModbusMaster()
-                try {
-                    newMaster.init()
-                } catch (e: ModbusInitException) {
-                    Log.w(TAG, "ModbusMaster init failed", e)
-                    runCatching { newMaster.destroy() }
-                    throw e
+                    val newMaster = param.createModbusMaster()
+                    try {
+                        newMaster.init()
+                    } catch (e: ModbusInitException) {
+                        Log.w(TAG, "ModbusMaster init failed", e)
+                        runCatching { newMaster.destroy() }
+                        throw e
+                    }
+                    master = newMaster
+                    newMaster
                 }
-                master = newMaster
-                newMaster
             }
         }
-    }
 
     override suspend fun close() {
         mutex.withLock {
@@ -103,65 +103,73 @@ class DefaultModbusWorker : ModbusWorker {
         slaveId: Int,
         start: Int,
         len: Int,
-    ): Result<ReadCoilsResponse> = execute {
-        send(ReadCoilsRequest(slaveId, start, len))
-    }
+    ): Result<ReadCoilsResponse> =
+        execute {
+            send(ReadCoilsRequest(slaveId, start, len))
+        }
 
     override suspend fun readDiscreteInput(
         slaveId: Int,
         start: Int,
         len: Int,
-    ): Result<ReadDiscreteInputsResponse> = execute {
-        send(ReadDiscreteInputsRequest(slaveId, start, len))
-    }
+    ): Result<ReadDiscreteInputsResponse> =
+        execute {
+            send(ReadDiscreteInputsRequest(slaveId, start, len))
+        }
 
     override suspend fun readHoldingRegisters(
         slaveId: Int,
         start: Int,
         len: Int,
-    ): Result<ReadHoldingRegistersResponse> = execute {
-        send(ReadHoldingRegistersRequest(slaveId, start, len))
-    }
+    ): Result<ReadHoldingRegistersResponse> =
+        execute {
+            send(ReadHoldingRegistersRequest(slaveId, start, len))
+        }
 
     override suspend fun readInputRegisters(
         slaveId: Int,
         start: Int,
         len: Int,
-    ): Result<ReadInputRegistersResponse> = execute {
-        send(ReadInputRegistersRequest(slaveId, start, len))
-    }
+    ): Result<ReadInputRegistersResponse> =
+        execute {
+            send(ReadInputRegistersRequest(slaveId, start, len))
+        }
 
     override suspend fun writeCoil(
         slaveId: Int,
         offset: Int,
         value: Boolean,
-    ): Result<WriteCoilResponse> = execute {
-        send(WriteCoilRequest(slaveId, offset, value))
-    }
+    ): Result<WriteCoilResponse> =
+        execute {
+            send(WriteCoilRequest(slaveId, offset, value))
+        }
 
     override suspend fun writeSingleRegister(
         slaveId: Int,
         offset: Int,
         value: Int,
-    ): Result<WriteRegisterResponse> = execute {
-        send(WriteRegisterRequest(slaveId, offset, value))
-    }
+    ): Result<WriteRegisterResponse> =
+        execute {
+            send(WriteRegisterRequest(slaveId, offset, value))
+        }
 
     override suspend fun writeCoils(
         slaveId: Int,
         start: Int,
         values: BooleanArray,
-    ): Result<WriteCoilsResponse> = execute {
-        send(WriteCoilsRequest(slaveId, start, values))
-    }
+    ): Result<WriteCoilsResponse> =
+        execute {
+            send(WriteCoilsRequest(slaveId, start, values))
+        }
 
     override suspend fun writeRegisters(
         slaveId: Int,
         start: Int,
         values: ShortArray,
-    ): Result<WriteRegistersResponse> = execute {
-        send(WriteRegistersRequest(slaveId, start, values))
-    }
+    ): Result<WriteRegistersResponse> =
+        execute {
+            send(WriteRegistersRequest(slaveId, start, values))
+        }
 
     override suspend fun writeRegistersButOne(
         slaveId: Int,
@@ -169,19 +177,21 @@ class DefaultModbusWorker : ModbusWorker {
         value: Int,
     ): Result<WriteRegistersResponse> = writeRegisters(slaveId, start, shortArrayOf(value.toShort()))
 
-    private suspend fun <T> execute(block: () -> T): Result<T> = mutex.withLock {
-        if (released) {
-            return@withLock Result.failure(IllegalStateException(RELEASED_MESSAGE))
+    private suspend fun <T> execute(block: () -> T): Result<T> =
+        mutex.withLock {
+            if (released) {
+                return@withLock Result.failure(IllegalStateException(RELEASED_MESSAGE))
+            }
+            applySendInterval()
+            val result =
+                withContext(Dispatchers.IO) {
+                    runCatchingCancellable { block() }
+                }
+            if (result.isSuccess) {
+                sendTime = SystemClock.uptimeMillis()
+            }
+            result
         }
-        applySendInterval()
-        val result = withContext(Dispatchers.IO) {
-            runCatchingCancellable { block() }
-        }
-        if (result.isSuccess) {
-            sendTime = SystemClock.uptimeMillis()
-        }
-        result
-    }
 
     private suspend fun applySendInterval() {
         val interval = sendIntervalTime
@@ -208,13 +218,14 @@ class DefaultModbusWorker : ModbusWorker {
      * Like [runCatching] but rethrows [CancellationException] so coroutine cancellation
      * propagates instead of being silently captured into a [Result.failure].
      */
-    private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> = try {
-        Result.success(block())
-    } catch (c: CancellationException) {
-        throw c
-    } catch (t: Throwable) {
-        Result.failure(t)
-    }
+    private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
+        try {
+            Result.success(block())
+        } catch (c: CancellationException) {
+            throw c
+        } catch (t: Throwable) {
+            Result.failure(t)
+        }
 
     companion object {
         private const val TAG = "ModbusWorker"

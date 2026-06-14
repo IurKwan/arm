@@ -17,17 +17,18 @@ class AndroidSerialPortWrapper(
     private val parity: Int,
     private val stopBits: Int,
 ) : SerialPortWrapper {
-
     private var inputStream: BufferedInputStream? = null
     private var outputStream: BufferedOutputStream? = null
     private var serialPort: SerialPort? = null
 
     override fun open() {
-        val port = SerialPort.newBuilder(device, baudRate)
-            .parity(parity)
-            .dataBits(dataBits)
-            .stopBits(stopBits)
-            .build()
+        val port =
+            SerialPort
+                .newBuilder(device, baudRate)
+                .parity(parity)
+                .dataBits(dataBits)
+                .stopBits(stopBits)
+                .build()
         serialPort = port
         inputStream = BufferedInputStream(port.inputStream)
         outputStream = BufferedOutputStream(port.outputStream)
@@ -43,9 +44,14 @@ class AndroidSerialPortWrapper(
     }
 
     override fun getInputStream(): InputStream? = inputStream
+
     override fun getOutputStream(): OutputStream? = outputStream
+
     override fun getBaudRate(): Int = baudRate
+
     override fun getDataBits(): Int = dataBits
+
     override fun getStopBits(): Int = stopBits
+
     override fun getParity(): Int = parity
 }

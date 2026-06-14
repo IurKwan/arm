@@ -21,7 +21,6 @@ import com.serotonin.modbus4j.msg.WriteRegistersResponse
  * - [IllegalStateException] worker 已 release
  */
 interface ModbusWorker {
-
     /**
      * 是否已经打开 Modbus
      */
@@ -55,7 +54,11 @@ interface ModbusWorker {
     /**
      * 01 (0x01) 读线圈
      */
-    suspend fun readCoil(slaveId: Int, start: Int, len: Int): Result<ReadCoilsResponse>
+    suspend fun readCoil(
+        slaveId: Int,
+        start: Int,
+        len: Int,
+    ): Result<ReadCoilsResponse>
 
     /**
      * 02 (0x02) 读离散量输入

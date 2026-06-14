@@ -18,7 +18,6 @@ class SerialParam private constructor(
      */
     var baudRate: Int,
 ) : ModbusParam {
-
     override var timeout: Int = ModbusParam.DEFAULT_TIMEOUT
     override var retries: Int = ModbusParam.DEFAULT_RETRIES
 
@@ -48,7 +47,9 @@ class SerialParam private constructor(
 
     companion object {
         @JvmStatic
-        fun create(serialDevice: String, baudRate: Int): SerialParam =
-            SerialParam(serialDevice, baudRate)
+        fun create(
+            serialDevice: String,
+            baudRate: Int,
+        ): SerialParam = SerialParam(serialDevice, baudRate)
     }
 }

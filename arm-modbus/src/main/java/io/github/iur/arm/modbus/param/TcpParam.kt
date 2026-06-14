@@ -8,12 +8,15 @@ import io.github.iur.arm.modbus.ModbusParam
 /**
  * TCP 参数
  */
-class TcpParam private constructor(host: String, port: Int) : ModbusParam {
-
-    private val ipParameters: IpParameters = IpParameters().apply {
-        this.host = host
-        this.port = port
-    }
+class TcpParam private constructor(
+    host: String,
+    port: Int,
+) : ModbusParam {
+    private val ipParameters: IpParameters =
+        IpParameters().apply {
+            this.host = host
+            this.port = port
+        }
 
     override var timeout: Int = ModbusParam.DEFAULT_TIMEOUT
     override var retries: Int = ModbusParam.DEFAULT_RETRIES
@@ -21,15 +24,21 @@ class TcpParam private constructor(host: String, port: Int) : ModbusParam {
 
     var host: String
         get() = ipParameters.host
-        set(value) { ipParameters.host = value }
+        set(value) {
+            ipParameters.host = value
+        }
 
     var port: Int
         get() = ipParameters.port
-        set(value) { ipParameters.port = value }
+        set(value) {
+            ipParameters.port = value
+        }
 
     var encapsulated: Boolean
         get() = ipParameters.isEncapsulated
-        set(value) { ipParameters.setEncapsulated(value) }
+        set(value) {
+            ipParameters.setEncapsulated(value)
+        }
 
     override fun createModbusMaster(): ModbusMaster {
         val factory = ModbusFactory()
@@ -41,6 +50,9 @@ class TcpParam private constructor(host: String, port: Int) : ModbusParam {
 
     companion object {
         @JvmStatic
-        fun create(host: String, port: Int): TcpParam = TcpParam(host, port)
+        fun create(
+            host: String,
+            port: Int,
+        ): TcpParam = TcpParam(host, port)
     }
 }
