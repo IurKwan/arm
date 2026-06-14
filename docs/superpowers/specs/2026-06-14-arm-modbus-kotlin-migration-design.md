@@ -172,14 +172,14 @@ class DefaultModbusWorker : ModbusWorker {
         if (released) {
             return@withLock Result.failure(IllegalStateException("ModbusWorker has been released"))
         }
-        withContext(Dispatchers.IO) {
-            runCatching {
-                applySendInterval()
-                val result = block()
-                sendTime = SystemClock.uptimeMillis()
-                result
-            }
+        applySendInterval()
+        val result = withContext(Dispatchers.IO) {
+            runCatching { block() }
         }
+        if (result.isSuccess) {
+            sendTime = SystemClock.uptimeMillis()
+        }
+        result
     }
 
     private suspend fun applySendInterval() {
