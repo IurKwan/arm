@@ -67,7 +67,26 @@
       "Bash(./gradlew :arm-mvi:common:assembleRelease :arm-mvi:mvi:assembleRelease :arm-mvi:compose:assembleRelease :arm-mvi:hilt:assembleRelease :arm-mvi:navigation:assembleRelease :arm-mvi:rxjava:assembleRelease)",
       "Bash(rm -rf ~/.m2/repository/io/github/iur/arm-mvi-common/)",
       "Bash(./gradlew :arm-mvi:common:publishReleasePublicationToMavenLocal)",
-      "Bash(grep -E '\\\\.\\(kt|kts\\)$')"
+      "Bash(grep -E '\\\\.\\(kt|kts\\)$')",
+      "Bash(./gradlew :arm-modbus:help *)",
+      "Bash(git -C /Users/guanzhirui/rui-projects/arm/.claude/worktrees/arm-modbus-kotlin add gradle/libs.versions.toml)",
+      "Bash(git -C /Users/guanzhirui/rui-projects/arm/.claude/worktrees/arm-modbus-kotlin commit -m \"chore: add kotlin-android plugin alias to version catalog\")",
+      "Bash(git -C /Users/guanzhirui/rui-projects/arm/.claude/worktrees/arm-modbus-kotlin rev-parse HEAD)",
+      "Bash(./gradlew :arm-modbus:tasks -q)",
+      "Bash(./gradlew :arm-modbus:assembleRelease)",
+      "Read(//Users/guanzhirui/rui-projects/arm/**)",
+      "Bash(cp /Users/guanzhirui/rui-projects/arm/local.properties /Users/guanzhirui/rui-projects/arm/.claude/worktrees/arm-modbus-kotlin/local.properties)",
+      "Bash(./gradlew :arm-modbus:compileReleaseKotlin :arm-modbus:compileReleaseJavaWithJavac)",
+      "Bash(git rm *)",
+      "Bash(./gradlew :arm-modbus:clean)",
+      "Bash(./gradlew :arm-modbus:testReleaseUnitTest)",
+      "Bash(./gradlew :arm-modbus:tasks)",
+      "Bash(./gradlew :arm-modbus:test)",
+      "Bash(./gradlew assemble *)",
+      "Bash(./gradlew :app:assembleDebug)",
+      "Bash(git merge *)",
+      "Bash(git worktree *)",
+      "Bash(git branch *)"
     ]
   }
 }
