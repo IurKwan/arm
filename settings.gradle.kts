@@ -18,6 +18,7 @@ pluginManagement {
         }
         maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://maven.aliyun.com/repository/central") }
+        maven(url = "https://jitpack.io")
     }
 }
 plugins {
@@ -43,6 +44,7 @@ dependencyResolutionManagement {
         }
         maven { url = uri("https://maven.aliyun.com/repository/google") }
         maven { url = uri("https://maven.aliyun.com/repository/central") }
+        maven(url = "https://jitpack.io")
     }
 }
 
@@ -58,3 +60,4 @@ include(":arm-fragment:core")
 include(":arm-fragment:fragmentation")
 include(":arm-tts")
 include(":arm-keyboard")
+include(":arm-modbus")

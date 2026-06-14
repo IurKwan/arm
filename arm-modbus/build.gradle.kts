@@ -4,8 +4,10 @@ plugins {
 }
 
 android {
-    namespace = "io.github.iur.arm.keyboard"
-    compileSdk = 36
+    namespace = "io.github.iur.arm.modbus"
+    compileSdk {
+        version = release(36)
+    }
 
     defaultConfig {
         minSdk = 24
@@ -35,15 +37,19 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.material)
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    // kotlin coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    androidTestImplementation(libs.androidx.junit)
+
+    // 串口
+    implementation("com.licheedev:android-serialport:2.1.3")
+    // modbus4j
+    implementation("com.github.licheedev:modbus4j:3.1.1-alpha1")
 }
+
 
 afterEvaluate {
     tasks.register<Jar>("androidSourcesJar") {
@@ -75,16 +81,16 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
-            artifactId = "arm-keyboard"
-            version = "1.0.7"
+            artifactId = "arm-modbus"
+            version = "1.0.0"
 
             afterEvaluate {
                 from(components["release"])
             }
 
             pom {
-                name.set("ARM Fragment TTS")
-                description.set("Fragment fragmentation library for ARM project")
+                name.set("ARM Modbus")
+                description.set("")
                 url.set("https://github.com/your-repo/arm")
 
                 licenses {
@@ -117,4 +123,3 @@ publishing {
         }
     }
 }
-

@@ -14,6 +14,7 @@
             <option value="$PROJECT_DIR$/arm-fragment/core" />
             <option value="$PROJECT_DIR$/arm-fragment/fragmentation" />
             <option value="$PROJECT_DIR$/arm-keyboard" />
+            <option value="$PROJECT_DIR$/arm-modbus" />
             <option value="$PROJECT_DIR$/arm-mvi" />
             <option value="$PROJECT_DIR$/arm-mvi/common" />
             <option value="$PROJECT_DIR$/arm-mvi/compose" />
