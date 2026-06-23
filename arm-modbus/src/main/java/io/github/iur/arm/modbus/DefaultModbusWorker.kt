@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
  *
  * 内部用 [Mutex] 序列化所有 Modbus 请求，IO 工作 dispatch 到 [Dispatchers.IO]。
  */
-class DefaultModbusWorker : ModbusWorker {
+open class DefaultModbusWorker : ModbusWorker {
     private val mutex = Mutex()
 
     @Volatile

@@ -2,7 +2,7 @@ package io.github.iur.arm.modbus.param
 
 import com.serotonin.modbus4j.ModbusMaster
 import com.serotonin.modbus4j.ip.IpParameters
-import com.serotonin.modbus4j.ip.udp.UdpMaster
+import io.github.iur.arm.modbus.AppUdpMaster
 import io.github.iur.arm.modbus.ModbusParam
 
 /**
@@ -45,9 +45,9 @@ class UdpParam private constructor(
         }
 
     override fun createModbusMaster(): ModbusMaster {
-        val master = UdpMaster(ipParameters, validateResponse)
-        master.setRetries(retries)
-        master.setTimeout(timeout)
+        val master = AppUdpMaster(ipParameters, validateResponse, port)
+        master.retries = retries
+        master.timeout = timeout
         return master
     }
 

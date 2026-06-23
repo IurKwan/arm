@@ -86,7 +86,8 @@
       "Bash(./gradlew :app:assembleDebug)",
       "Bash(git merge *)",
       "Bash(git worktree *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(unzip -l /Users/guanzhirui/.gradle/caches/modules-2/files-2.1/com.github.licheedev/modbus4j/3.1.1-alpha1/88d1ad2d99403dbc495de37578bf60ca90672365/modbus4j-3.1.1-alpha1-sources.jar)"
     ]
   }
 }

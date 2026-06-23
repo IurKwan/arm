@@ -195,7 +195,6 @@ public class ArmFragmentDelegate {
             setBackground(view);
         }
 
-
         if (savedInstanceState != null
                 || mRootStatus == STATUS_ROOT_ANIM_DISABLE
                 || (mFragment.getTag() != null && mFragment.getTag().startsWith("android:switcher:"))
