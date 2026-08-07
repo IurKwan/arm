@@ -53,7 +53,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-    api(libs.arm.mvi.common)
+    api(project(":arm-mvi:common"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -103,8 +103,12 @@ publishing {
             url =
                 uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
             credentials {
-                username = "REDACTED_ALIYUN_USERNAME"
-                password = "REDACTED_ALIYUN_PASSWORD"
+                username = providers.gradleProperty("aliyunUsername")
+                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_USERNAME"))
+                    .getOrElse("")
+                password = providers.gradleProperty("aliyunPassword")
+                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_PASSWORD"))
+                    .getOrElse("")
             }
         }
     }

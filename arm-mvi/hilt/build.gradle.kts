@@ -52,7 +52,7 @@ android {
 }
 
 dependencies {
-    api(libs.arm.mvi.mvi)
+    api(project(":arm-mvi:mvi"))
 
     ksp(libs.hilt.compiler)
     implementation(libs.hilt)
@@ -107,8 +107,12 @@ publishing {
             url =
                 uri("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
             credentials {
-                username = "REDACTED_ALIYUN_USERNAME"
-                password = "REDACTED_ALIYUN_PASSWORD"
+                username = providers.gradleProperty("aliyunUsername")
+                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_USERNAME"))
+                    .getOrElse("")
+                password = providers.gradleProperty("aliyunPassword")
+                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_PASSWORD"))
+                    .getOrElse("")
             }
         }
     }
