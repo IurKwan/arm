@@ -1,3 +1,16 @@
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = file("local.properties")
+    if (localPropertiesFile.isFile) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+val localAliyunUsername = localProperties.getProperty("aliyunUsername")
+val localAliyunPassword = localProperties.getProperty("aliyunPassword")
+localAliyunUsername?.let { System.setProperty("aliyunUsername", it) }
+localAliyunPassword?.let { System.setProperty("aliyunPassword", it) }
+
 pluginManagement {
     repositories {
         google {
@@ -11,12 +24,12 @@ pluginManagement {
         gradlePluginPortal()
         maven {
             credentials {
-                username = providers.gradleProperty("aliyunUsername")
-                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_USERNAME"))
-                    .getOrElse("")
-                password = providers.gradleProperty("aliyunPassword")
-                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_PASSWORD"))
-                    .getOrElse("")
+                username = System.getProperty("aliyunUsername")
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME").orEmpty()
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME").orEmpty()
+                password = System.getProperty("aliyunPassword")
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD").orEmpty()
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD").orEmpty()
             }
             setUrl("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
         }
@@ -41,12 +54,12 @@ dependencyResolutionManagement {
         mavenCentral()
         maven {
             credentials {
-                username = providers.gradleProperty("aliyunUsername")
-                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_USERNAME"))
-                    .getOrElse("")
-                password = providers.gradleProperty("aliyunPassword")
-                    .orElse(providers.environmentVariable("ALIYUN_MAVEN_PASSWORD"))
-                    .getOrElse("")
+                username = System.getProperty("aliyunUsername")
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME").orEmpty()
+                    ?: System.getenv("ALIYUN_MAVEN_USERNAME").orEmpty()
+                password = System.getProperty("aliyunPassword")
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD").orEmpty()
+                    ?: System.getenv("ALIYUN_MAVEN_PASSWORD").orEmpty()
             }
             setUrl("https://packages.aliyun.com/62e88d2c1a358b4399afaf04/maven/2260669-release-lzjiju")
         }
