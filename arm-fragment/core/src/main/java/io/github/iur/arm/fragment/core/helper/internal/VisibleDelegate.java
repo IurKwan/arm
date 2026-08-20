@@ -23,7 +23,6 @@ public class VisibleDelegate {
     private boolean mInvisibleWhenLeave;
     private boolean mIsFirstVisible = true;
     private boolean mFirstCreateViewCompatReplace = true;
-    private boolean mAbortInitVisible = false;
     private Runnable taskDispatchSupportVisible;
 
     private Handler mHandler;
@@ -79,15 +78,13 @@ public class VisibleDelegate {
                 dispatchSupportVisible(true);
             }
         } else {
-            mAbortInitVisible = false;
             initVisible();
         }
     }
 
     public void onPause() {
         if (taskDispatchSupportVisible != null) {
-            getHandler().removeCallbacks(taskDispatchSupportVisible);
-            mAbortInitVisible = true;
+            cancelPendingVisibleDispatch();
             return;
         }
 
@@ -133,7 +130,11 @@ public class VisibleDelegate {
     }
 
     public void onDestroyView() {
+        cancelPendingVisibleDispatch();
         mIsFirstVisible = true;
+        mIsSupportVisible = false;
+        mNeedDispatch = true;
+        mInvisibleWhenLeave = false;
     }
 
     public void setUserVisibleHint(boolean isVisibleToUser) {
@@ -160,9 +161,22 @@ public class VisibleDelegate {
     private void enqueueDispatchVisible() {
         taskDispatchSupportVisible = () -> {
             taskDispatchSupportVisible = null;
+            // ViewPager2 may destroy a non-primary page before this main-thread
+            // callback runs. Do not dispatch visibility into a destroyed view.
+            if (!mFragment.isAdded() || mFragment.getView() == null
+                    || !mFragment.isResumed() || mFragment.isHidden()) {
+                return;
+            }
             dispatchSupportVisible(true);
         };
         getHandler().post(taskDispatchSupportVisible);
+    }
+
+    private void cancelPendingVisibleDispatch() {
+        if (taskDispatchSupportVisible != null) {
+            getHandler().removeCallbacks(taskDispatchSupportVisible);
+            taskDispatchSupportVisible = null;
+        }
     }
 
     private void dispatchSupportVisible(boolean visible) {
