@@ -1,6 +1,7 @@
 package io.github.iur.arm.modbus
 
 import com.serotonin.modbus4j.exception.ModbusTransportException
+import com.serotonin.modbus4j.msg.WriteInt32Response
 
 internal object McuInt32FrameCodec {
     private const val FUNCTION_WRITE_REGISTER = 0x06
@@ -48,9 +49,8 @@ internal object McuInt32FrameCodec {
         }
 
         return WriteInt32Response(
-            slaveId = response[0].toInt() and 0xFF,
-            offset = ((response[2].toInt() and 0xFF) shl 8) or (response[3].toInt() and 0xFF),
-            value =
+            response[0].toInt() and 0xFF,
+            ((response[2].toInt() and 0xFF) shl 8) or (response[3].toInt() and 0xFF),
                 ((response[4].toInt() and 0xFF) shl 24) or
                     ((response[5].toInt() and 0xFF) shl 16) or
                     ((response[6].toInt() and 0xFF) shl 8) or
