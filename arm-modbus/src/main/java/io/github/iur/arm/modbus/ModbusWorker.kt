@@ -11,6 +11,31 @@ import com.serotonin.modbus4j.msg.WriteRegisterResponse
 import com.serotonin.modbus4j.msg.WriteRegistersResponse
 
 /**
+ * 32 位整数在两个连续 16 位寄存器中的字序。
+ */
+enum class Int32WordOrder {
+    HIGH_WORD_FIRST,
+    LOW_WORD_FIRST,
+}
+
+internal fun Int.toModbusWords(wordOrder: Int32WordOrder): Pair<Int, Int> {
+    val highWord = this ushr Short.SIZE_BITS
+    val lowWord = this and 0xFFFF
+    return when (wordOrder) {
+        Int32WordOrder.HIGH_WORD_FIRST -> highWord to lowWord
+        Int32WordOrder.LOW_WORD_FIRST -> lowWord to highWord
+    }
+}
+
+/**
+ * 使用两次功能码 06 写入 32 位整数后的响应。
+ */
+data class WriteInt32Response(
+    val firstRegister: WriteRegisterResponse,
+    val secondRegister: WriteRegisterResponse,
+)
+
+/**
  * Modbus 工作接口，协程化版本。
  *
  * 所有 IO 操作均为 suspend 函数，可能失败的操作返回 [Result]。
@@ -104,6 +129,19 @@ interface ModbusWorker {
         offset: Int,
         value: Int,
     ): Result<WriteRegisterResponse>
+
+    /**
+     * 使用两次 06 (0x06) 将一个有符号 32 位整数写入两个连续保持寄存器。
+     *
+     * 两次请求在 Worker 内连续执行，不会与同一 Worker 的其他请求交错，但 Modbus
+     * 协议不保证两个独立请求具备原子性。如果第二次写入失败，第一次写入不会回滚。
+     */
+    suspend fun writeInt32(
+        slaveId: Int,
+        start: Int,
+        value: Int,
+        wordOrder: Int32WordOrder = Int32WordOrder.HIGH_WORD_FIRST,
+    ): Result<WriteInt32Response>
 
     /**
      * 15 (0x0F) 写多个线圈
