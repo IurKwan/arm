@@ -86,7 +86,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "io.github.iur"
             artifactId = "arm-modbus"
-            version = "1.0.3"
+            version = "1.0.4"
 
             afterEvaluate {
                 from(components["release"])
