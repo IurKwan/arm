@@ -18,6 +18,7 @@ import com.serotonin.modbus4j.msg.WriteCoilRequest
 import com.serotonin.modbus4j.msg.WriteCoilResponse
 import com.serotonin.modbus4j.msg.WriteCoilsRequest
 import com.serotonin.modbus4j.msg.WriteCoilsResponse
+import com.serotonin.modbus4j.msg.WriteInt32Response
 import com.serotonin.modbus4j.msg.WriteRegisterRequest
 import com.serotonin.modbus4j.msg.WriteRegisterResponse
 import com.serotonin.modbus4j.msg.WriteRegistersRequest

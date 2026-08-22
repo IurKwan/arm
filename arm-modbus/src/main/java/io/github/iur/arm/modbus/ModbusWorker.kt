@@ -7,17 +7,9 @@ import com.serotonin.modbus4j.msg.ReadHoldingRegistersResponse
 import com.serotonin.modbus4j.msg.ReadInputRegistersResponse
 import com.serotonin.modbus4j.msg.WriteCoilResponse
 import com.serotonin.modbus4j.msg.WriteCoilsResponse
+import com.serotonin.modbus4j.msg.WriteInt32Response
 import com.serotonin.modbus4j.msg.WriteRegisterResponse
 import com.serotonin.modbus4j.msg.WriteRegistersResponse
-
-/**
- * 使用 MCU 自定义功能码 06 写入 32 位整数后的回显响应。
- */
-data class WriteInt32Response(
-    val slaveId: Int,
-    val offset: Int,
-    val value: Int,
-)
 
 /**
  * Modbus 工作接口，协程化版本。
