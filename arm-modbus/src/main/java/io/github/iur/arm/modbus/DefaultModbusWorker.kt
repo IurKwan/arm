@@ -155,20 +155,13 @@ open class DefaultModbusWorker : ModbusWorker {
 
     override suspend fun writeInt32(
         slaveId: Int,
-        start: Int,
+        offset: Int,
         value: Int,
-        wordOrder: Int32WordOrder,
     ): Result<WriteInt32Response> =
         execute {
-            require(start in 0..MAX_INT32_START_OFFSET) {
-                "Int32 start offset must leave room for two registers, but now start=$start"
-            }
-            val (firstWord, secondWord) = value.toModbusWords(wordOrder)
-
-            WriteInt32Response(
-                firstRegister = send(WriteRegisterRequest(slaveId, start, firstWord)),
-                secondRegister = send(WriteRegisterRequest(slaveId, start + 1, secondWord)),
-            )
+            val udpMaster = master as? AppUdpMaster
+                ?: throw UnsupportedOperationException("Custom Int32 function 06 requires AppUdpMaster")
+            udpMaster.writeInt32(slaveId, offset, value)
         }
 
     override suspend fun writeCoils(
@@ -249,6 +242,5 @@ open class DefaultModbusWorker : ModbusWorker {
         private const val TAG = "ModbusWorker"
         private const val NO_INIT_MESSAGE = "ModbusMaster hasn't been inited!"
         private const val RELEASED_MESSAGE = "ModbusWorker has been released"
-        private const val MAX_INT32_START_OFFSET = 0xFFFE
     }
 }
