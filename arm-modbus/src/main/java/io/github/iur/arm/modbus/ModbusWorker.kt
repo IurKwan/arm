@@ -11,6 +11,15 @@ import com.serotonin.modbus4j.msg.WriteRegisterResponse
 import com.serotonin.modbus4j.msg.WriteRegistersResponse
 
 /**
+ * 使用 MCU 自定义功能码 06 写入 32 位整数后的回显响应。
+ */
+data class WriteInt32Response(
+    val slaveId: Int,
+    val offset: Int,
+    val value: Int,
+)
+
+/**
  * Modbus 工作接口，协程化版本。
  *
  * 所有 IO 操作均为 suspend 函数，可能失败的操作返回 [Result]。
@@ -104,6 +113,16 @@ interface ModbusWorker {
         offset: Int,
         value: Int,
     ): Result<WriteRegisterResponse>
+
+    /**
+     * 使用 MCU 自定义的 06 (0x06) 报文将一个大端有符号 32 位整数写入单个逻辑寄存器。
+     * 该扩展仅适用于 [AppUdpMaster]，不改变标准 Modbus 06 写入接口的行为。
+     */
+    suspend fun writeInt32(
+        slaveId: Int,
+        offset: Int,
+        value: Int,
+    ): Result<WriteInt32Response>
 
     /**
      * 15 (0x0F) 写多个线圈

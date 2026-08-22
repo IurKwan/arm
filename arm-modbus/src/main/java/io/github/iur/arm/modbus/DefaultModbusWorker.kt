@@ -153,6 +153,17 @@ open class DefaultModbusWorker : ModbusWorker {
             send(WriteRegisterRequest(slaveId, offset, value))
         }
 
+    override suspend fun writeInt32(
+        slaveId: Int,
+        offset: Int,
+        value: Int,
+    ): Result<WriteInt32Response> =
+        execute {
+            val udpMaster = master as? AppUdpMaster
+                ?: throw UnsupportedOperationException("Custom Int32 function 06 requires AppUdpMaster")
+            udpMaster.writeInt32(slaveId, offset, value)
+        }
+
     override suspend fun writeCoils(
         slaveId: Int,
         start: Int,

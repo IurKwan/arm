@@ -139,6 +139,38 @@ public class AppUdpMaster extends ModbusMaster {
         }
     }
 
+    /**
+     * Sends the MCU-specific function 06 frame whose register value is a big-endian Int32.
+     */
+    public WriteInt32Response writeInt32(int slaveId, int offset, int value)
+            throws ModbusTransportException, ModbusRespException {
+        byte[] request = McuInt32FrameCodec.encode(slaveId, offset, value);
+
+        try {
+            int attempts = getRetries() + 1;
+            while (true) {
+                DatagramPacket packet = new DatagramPacket(request, request.length,
+                        InetAddress.getByName(ipParameters.getHost()), ipParameters.getPort());
+                socket.send(packet);
+
+                try {
+                    DatagramPacket responsePacket = new DatagramPacket(new byte[MESSAGE_LENGTH], MESSAGE_LENGTH);
+                    socket.receive(responsePacket);
+                    byte[] response = new byte[responsePacket.getLength()];
+                    System.arraycopy(responsePacket.getData(), responsePacket.getOffset(), response, 0,
+                            responsePacket.getLength());
+                    return McuInt32FrameCodec.decodeEcho(response, request);
+                } catch (SocketTimeoutException e) {
+                    attempts--;
+                    if (attempts <= 0)
+                        throw new ModbusTransportException(e, slaveId);
+                }
+            }
+        } catch (IOException e) {
+            throw new ModbusTransportException(e, slaveId);
+        }
+    }
+
     private void sendImpl(OutgoingRequestMessage request) throws IOException {
         byte[] data = request.getMessageData();
         DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(ipParameters.getHost()),
